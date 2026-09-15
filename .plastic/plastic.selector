@@ -1,0 +1,4 @@
+repository "Parcial 1 IA/Parcial 1 IA@4674086187067@cloud"
+  path "/"
+    br "/main"
+    co "/main"
