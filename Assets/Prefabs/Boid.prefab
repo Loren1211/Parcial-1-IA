@@ -126,14 +126,17 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d285c3ce2661dde4d8034b2f07a9bab0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Agent
+  m_EditorClassIdentifier: Assembly-CSharp::BoidAgent
   _maxSpeed: 5
   _maxForce: 10
   _viewRadius: 5
   _separationRadius: 2
-  _separationWeight: 1
+  _separationWeight: 1.5
   _cohesionWeight: 1
   _alignmentWeight: 1
+  _evadeWeight: 1.5
+  _arriveWeight: 1
+  _separationDampen: 0.2
   _arriveRadius: 3
   _interactRadius: 1
   _respawnDelay: 3
@@ -142,3 +145,12 @@ MonoBehaviour:
   _hunterLayer:
     serializedVersion: 2
     m_Bits: 64
+  _boidLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  _interestLayer:
+    serializedVersion: 2
+    m_Bits: 256
+  _maxHealth: 100
+  _detectionInterval: 0.15
+  _drawGizmos: 1

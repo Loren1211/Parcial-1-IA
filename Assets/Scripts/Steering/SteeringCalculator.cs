@@ -1,0 +1,144 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+/// <summary>
+/// Matemática pura de steering. No toca transforms, no usa Time.deltaTime
+/// y no conoce la escena: recibe posiciones/velocidades y devuelve fuerzas.
+/// </summary>
+public static class SteeringCalculator
+{
+    public static Vector3 CalculateSteering(Vector3 velocity, Vector3 desired, float maxForce)
+    {
+        Vector3 steering = desired - velocity;
+        return Vector3.ClampMagnitude(steering, maxForce);
+    }
+
+    public static Vector3 Seek(Vector3 position, Vector3 velocity, Vector3 target, float maxSpeed, float maxForce)
+    {
+        Vector3 desired = (target - position).normalized * maxSpeed;
+        return CalculateSteering(velocity, desired, maxForce);
+    }
+
+    public static Vector3 Flee(Vector3 position, Vector3 velocity, Vector3 target, float maxSpeed, float maxForce)
+    {
+        Vector3 desired = (position - target).normalized * maxSpeed;
+        return CalculateSteering(velocity, desired, maxForce);
+    }
+
+    public static Vector3 Evade(
+        Vector3 position,
+        Vector3 velocity,
+        Vector3 hunterPosition,
+        Vector3 hunterVelocity,
+        float maxSpeed,
+        float maxForce,
+        float leadTime = 1f)
+    {
+        Vector3 predictedPosition = hunterPosition + hunterVelocity * leadTime;
+        return Flee(position, velocity, predictedPosition, maxSpeed, maxForce);
+    }
+
+    public static Vector3 Arrive(
+        Vector3 position,
+        Vector3 velocity,
+        Vector3 target,
+        float maxSpeed,
+        float maxForce,
+        float slowRadius)
+    {
+        Vector3 direction = target - position;
+        float distance = direction.magnitude;
+
+        if (distance <= 0.0001f) return Vector3.zero;
+
+        float speed = maxSpeed;
+        if (distance <= slowRadius)
+            speed *= distance / Mathf.Max(0.0001f, slowRadius);
+
+        Vector3 desired = direction.normalized * speed;
+        return CalculateSteering(velocity, desired, maxForce);
+    }
+
+    public static Vector3 Separation(
+        Vector3 position,
+        Vector3 velocity,
+        IReadOnlyList<BoidAgent> neighbors,
+        float maxSpeed,
+        float maxForce)
+    {
+        if (neighbors == null || neighbors.Count == 0) return Vector3.zero;
+
+        Vector3 desired = Vector3.zero;
+        int count = 0;
+
+        foreach (BoidAgent other in neighbors)
+        {
+            if (other == null) continue;
+
+            Vector3 difference = position - other.transform.position;
+            float sqrDistance = difference.sqrMagnitude;
+
+            if (sqrDistance <= 0.0001f) continue;
+
+            float distance = Mathf.Sqrt(sqrDistance);
+            desired += difference / (distance * distance);
+            count++;
+        }
+
+        if (count == 0 || desired.sqrMagnitude <= 0.0001f) return Vector3.zero;
+
+        desired /= count;
+        return CalculateSteering(velocity, desired.normalized * maxSpeed, maxForce);
+    }
+
+    public static Vector3 Alignment(
+        Vector3 velocity,
+        IReadOnlyList<BoidAgent> neighbors,
+        float maxSpeed,
+        float maxForce)
+    {
+        if (neighbors == null || neighbors.Count == 0) return Vector3.zero;
+
+        Vector3 averageVelocity = Vector3.zero;
+        int count = 0;
+
+        foreach (BoidAgent other in neighbors)
+        {
+            if (other == null) continue;
+
+            averageVelocity += other.Velocity;
+            count++;
+        }
+
+        if (count == 0 || averageVelocity.sqrMagnitude <= 0.0001f) return Vector3.zero;
+
+        averageVelocity /= count;
+        return CalculateSteering(velocity, averageVelocity.normalized * maxSpeed, maxForce);
+    }
+
+    public static Vector3 Cohesion(
+        Vector3 position,
+        Vector3 velocity,
+        IReadOnlyList<BoidAgent> neighbors,
+        float maxSpeed,
+        float maxForce)
+    {
+        if (neighbors == null || neighbors.Count == 0) return Vector3.zero;
+
+        Vector3 center = Vector3.zero;
+        int count = 0;
+
+        foreach (BoidAgent other in neighbors)
+        {
+            if (other == null) continue;
+
+            center += other.transform.position;
+            count++;
+        }
+
+        if (count == 0) return Vector3.zero;
+
+        center /= count;
+        return Seek(position, velocity, center, maxSpeed, maxForce);
+    }
+}
