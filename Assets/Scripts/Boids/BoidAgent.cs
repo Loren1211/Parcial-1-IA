@@ -132,11 +132,35 @@ public class BoidAgent : MonoBehaviour
         }
 
         _sensor.Tick();
-        _behavior.Evaluate();
 
+        BoidState previousState = State;
+        _behavior.Evaluate();
         State = _behavior.State;
+
+        // Si el cebo desaparece mientras el boid lo perseguía o interactuaba,
+        // le damos un impulso aleatorio para que no quede amontonado con
+        // velocidad casi cero junto al resto del cardumen.
+        if ((previousState == BoidState.Seeking || previousState == BoidState.Interacting)
+            && State == BoidState.Flocking)
+        {
+            ScatterFromInterest();
+        }
+
         _motor.Apply(_behavior.Steering, deltaTime);
         _interaction.Tick(deltaTime);
+    }
+
+    private void ScatterFromInterest()
+    {
+        Vector3 direction = new(
+            Random.Range(-1f, 1f),
+            0f,
+            Random.Range(-1f, 1f));
+
+        if (direction.sqrMagnitude <= 0.0001f)
+            direction = Vector3.forward;
+
+        _motor.SetVelocity(direction.normalized * _maxSpeed * 0.9f);
     }
 
     public void TakeDamage(float damage)

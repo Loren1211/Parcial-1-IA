@@ -1178,7 +1178,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7bb1b12d70c4f84882346c0253e433a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HunterAgent
-  _speed: 4
+  _speed: 6.5
   _tba: 2
   _rangeAttackRadius: 6
   _meleeAttackRadius: 1.5

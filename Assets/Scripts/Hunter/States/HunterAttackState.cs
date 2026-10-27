@@ -21,9 +21,16 @@ public class HunterAttackState : State<HunterAgent.States>
 
     public override void Update()
     {
-        if (_target == null || !_target.IsActive || !StillInPerception())
+        if (_target == null || !StillInPerception())
         {
             _fsm.ChangeState(HunterAgent.States.Patrol);
+            return;
+        }
+
+        // Si la presa murió, el cazador pasa directo a recolectarla.
+        if (!_target.IsActive)
+        {
+            _fsm.ChangeState(HunterAgent.States.Gather);
             return;
         }
 
@@ -68,7 +75,10 @@ public class HunterAttackState : State<HunterAgent.States>
         _target.TakeDamage(_hunter.MeleeDamage);
 
         _hunter.ResetTBA();
-        _fsm.ChangeState(HunterAgent.States.Patrol);
+
+        // Si la presa murió, va a recolectarla; si no, sigue persiguiéndola.
+        if (!_target.IsActive)
+            _fsm.ChangeState(HunterAgent.States.Gather);
     }
 
     private void PerformRangeAttack()
@@ -80,6 +90,9 @@ public class HunterAttackState : State<HunterAgent.States>
         _target.TakeDamage(_hunter.RangeDamage);
 
         _hunter.ResetTBA();
-        _fsm.ChangeState(HunterAgent.States.Patrol);
+
+        // Si el ataque a distancia mató a la presa, pasa a recolectarla.
+        if (!_target.IsActive)
+            _fsm.ChangeState(HunterAgent.States.Gather);
     }
 }

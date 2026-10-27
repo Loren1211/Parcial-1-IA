@@ -9,7 +9,7 @@ public class HunterAgent : MonoBehaviour
     public enum States { Patrol, Attack, Gather }
 
     [Header("Movement")]
-    [SerializeField] private float _speed = 4f;
+    [SerializeField] private float _speed = 6.5f;
 
     [Header("Combat")]
     [SerializeField] private float _tba = 2f;
