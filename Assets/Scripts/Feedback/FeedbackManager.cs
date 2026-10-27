@@ -14,8 +14,8 @@ public class FeedbackManager : MonoBehaviour
     [SerializeField] private int _maxLogEntries = 8;
     [SerializeField] private float _floatingTextLifetime = 1.6f;
 
-    private readonly List<LogEntry> _log = new();
-    private readonly List<FloatingText> _floatingTexts = new();
+    private List<LogEntry> _log = new();
+    private List<FloatingText> _floatingTexts = new();
 
     public int Kills { get; private set; }
     public int Gathers { get; private set; }
@@ -65,6 +65,12 @@ public class FeedbackManager : MonoBehaviour
 
     private void Awake()
     {
+        _log ??= new List<LogEntry>();
+        _floatingTexts ??= new List<FloatingText>();
+
+        if (_maxLogEntries <= 0) _maxLogEntries = 8;
+        if (_floatingTextLifetime <= 0f) _floatingTextLifetime = 1.6f;
+
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -94,6 +100,7 @@ public class FeedbackManager : MonoBehaviour
 
     public void AddLog(string message)
     {
+        _log ??= new List<LogEntry>();
         _log.Add(new LogEntry
         {
             Time = DateTime.Now.ToString("HH:mm:ss"),
@@ -106,6 +113,7 @@ public class FeedbackManager : MonoBehaviour
 
     public void SpawnFloatingText(Vector3 position, string text, Color color)
     {
+        _floatingTexts ??= new List<FloatingText>();
         _floatingTexts.Add(new FloatingText
         {
             Position = position,

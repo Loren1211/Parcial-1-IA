@@ -24,12 +24,15 @@ public class PatrolRoute : MonoBehaviour
 
     private void Awake()
     {
+        _waypoints ??= new List<Transform>();
+
         if (_waypoints.Count == 0) RefreshWaypoints();
     }
 
     [ContextMenu("Refresh Waypoints")]
     public void RefreshWaypoints()
     {
+        _waypoints ??= new List<Transform>();
         _waypoints.Clear();
 
         foreach (Transform child in transform)

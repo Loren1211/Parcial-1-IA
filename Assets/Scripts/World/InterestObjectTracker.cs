@@ -10,13 +10,18 @@ public class InterestObjectTracker : MonoBehaviour
 {
     public static InterestObjectTracker Instance { get; private set; }
 
-    private readonly HashSet<InterestObject> _active = new();
+    private HashSet<InterestObject> _active = new();
 
-    public int ActiveCount => _active.Count;
-    public IReadOnlyCollection<InterestObject> Active => _active;
+    public int ActiveCount => _active != null ? _active.Count : 0;
+    public IReadOnlyCollection<InterestObject> Active =>
+        _active != null
+            ? _active
+            : (IReadOnlyCollection<InterestObject>)System.Array.Empty<InterestObject>();
 
     private void Awake()
     {
+        _active ??= new HashSet<InterestObject>();
+
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -33,11 +38,16 @@ public class InterestObjectTracker : MonoBehaviour
 
     public void Register(InterestObject interestObject)
     {
-        if (interestObject != null) _active.Add(interestObject);
+        if (interestObject == null) return;
+
+        _active ??= new HashSet<InterestObject>();
+        _active.Add(interestObject);
     }
 
     public void Unregister(InterestObject interestObject)
     {
-        if (interestObject != null) _active.Remove(interestObject);
+        if (interestObject == null) return;
+
+        _active?.Remove(interestObject);
     }
 }

@@ -15,7 +15,7 @@ public class InterestObject : MonoBehaviour
     [SerializeField] private float _damageInterval = 1f;
     [SerializeField] private float _damagePerTick = 2f;
 
-    private readonly MaterialPropertyBlock _block = new();
+    private MaterialPropertyBlock _block;
 
     private float _health;
     private float _timer;
@@ -30,6 +30,7 @@ public class InterestObject : MonoBehaviour
 
     private void Awake()
     {
+        _block = new MaterialPropertyBlock();
         _health = _maxHealth;
         _renderer = GetComponent<Renderer>();
         _tracker = InterestObjectTracker.Instance;

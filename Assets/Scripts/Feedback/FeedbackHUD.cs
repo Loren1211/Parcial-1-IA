@@ -26,6 +26,8 @@ public class FeedbackHUD : MonoBehaviour
 
     private void Awake()
     {
+        _showHud = true;
+        _showLabels = true;
         RefreshReferences();
     }
 

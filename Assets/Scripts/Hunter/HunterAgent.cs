@@ -57,13 +57,16 @@ public class HunterAgent : MonoBehaviour
     public float GatherProgress { get; set; }
     public int DetectedBoidsCount => Sensor != null ? Sensor.DetectedBoidsCount : 0;
 
-    private readonly FiniteStateMachine<States> _fsm = new();
+    private FiniteStateMachine<States> _fsm;
     public FiniteStateMachine<States> FSM => _fsm;
 
     public bool CanAttack() => Combat != null && Combat.CanAttack;
 
     private void Awake()
     {
+        _fsm = new FiniteStateMachine<States>();
+        LastAction = "Ninguna";
+
         if (_patrolRoute == null)
             _patrolRoute = FindFirstObjectByType<PatrolRoute>();
 

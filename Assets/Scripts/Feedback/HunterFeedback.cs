@@ -9,13 +9,14 @@ public class HunterFeedback
     private static readonly int ColorId = Shader.PropertyToID("_Color");
 
     private readonly Renderer _renderer;
-    private readonly MaterialPropertyBlock _block = new();
+    private readonly MaterialPropertyBlock _block;
 
     private Color _lastColor = Color.clear;
 
     public HunterFeedback(Renderer renderer)
     {
         _renderer = renderer;
+        _block = new MaterialPropertyBlock();
     }
 
     public void SetState(HunterAgent.States state)
