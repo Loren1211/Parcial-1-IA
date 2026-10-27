@@ -44,6 +44,7 @@ public class PatrolRoute : MonoBehaviour
 
     private void OnDrawGizmos()
     {
+        if (!FeedbackManager.ShowGizmos) return;
         if (_waypoints == null || _waypoints.Count == 0) return;
 
         Gizmos.color = new Color(1f, 0.85f, 0.1f, 0.9f);

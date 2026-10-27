@@ -243,6 +243,8 @@ public class BoidAgent : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
+        if (!FeedbackManager.ShowGizmos) return;
+
         Gizmos.color = new Color(1f, 1f, 1f, 0.35f);
         Gizmos.DrawWireSphere(transform.position, _viewRadius);
 
@@ -258,6 +260,7 @@ public class BoidAgent : MonoBehaviour
 
     private void OnDrawGizmos()
     {
+        if (!FeedbackManager.ShowGizmos) return;
         if (!_drawGizmos || !Application.isPlaying || _motor == null) return;
 
         Gizmos.color = Color.green;
