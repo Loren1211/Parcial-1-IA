@@ -34,7 +34,18 @@ public static class SteeringCalculator
         float maxForce,
         float leadTime = 1f)
     {
-        Vector3 predictedPosition = hunterPosition + hunterVelocity * leadTime;
+        // Si el cazador es más rápido que el boid, una predicción fija de 1 s
+        // puede pasarse detrás del boid y hacer que huya hacia el cazador.
+        // Limitamos el tiempo de anticipación para que el punto predicho
+        // quede siempre entre el cazador y el boid.
+        float distance = Vector3.Distance(position, hunterPosition);
+        float hunterSpeed = hunterVelocity.magnitude;
+
+        float safeLeadTime = hunterSpeed > 0.01f
+            ? Mathf.Min(leadTime, distance / hunterSpeed * 0.9f)
+            : leadTime;
+
+        Vector3 predictedPosition = hunterPosition + hunterVelocity * safeLeadTime;
         return Flee(position, velocity, predictedPosition, maxSpeed, maxForce);
     }
 
