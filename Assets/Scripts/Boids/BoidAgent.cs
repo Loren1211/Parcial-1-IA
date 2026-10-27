@@ -12,13 +12,12 @@ public class BoidAgent : MonoBehaviour
     [SerializeField] private float _viewRadius = 5f;
 
     [Header("Flocking values")]
-    [SerializeField] private float _separationRadius = 2f;
+    [SerializeField] private float _separationRadius = 3f;
     [SerializeField, Range(0f, 3f)] private float _separationWeight = 1.5f;
-    [SerializeField, Range(0f, 3f)] private float _cohesionWeight = 1f;
-    [SerializeField, Range(0f, 3f)] private float _alignmentWeight = 1f;
+    [SerializeField, Range(0f, 3f)] private float _cohesionWeight = 0.6f;
+    [SerializeField, Range(0f, 3f)] private float _alignmentWeight = 0.8f;
     [SerializeField] private float _evadeWeight = 1.5f;
     [SerializeField] private float _arriveWeight = 1f;
-    [SerializeField, Range(0f, 1f)] private float _separationDampen = 0.2f;
 
     [Header("Interest Object")]
     [SerializeField] private float _arriveRadius = 3f;
@@ -77,7 +76,6 @@ public class BoidAgent : MonoBehaviour
             detectionInterval = _detectionInterval,
             evadeWeight = _evadeWeight,
             arriveWeight = _arriveWeight,
-            separationDampen = _separationDampen,
             maxHealth = _maxHealth,
             respawnDelay = _respawnDelay
         };

@@ -80,6 +80,8 @@ public static class SteeringCalculator
         if (neighbors == null || neighbors.Count == 0) return Vector3.zero;
 
         Vector3 desired = Vector3.zero;
+        Vector3 nearestOffset = Vector3.zero;
+        float nearestSqr = float.MaxValue;
         int count = 0;
 
         foreach (BoidAgent other in neighbors)
@@ -93,12 +95,26 @@ public static class SteeringCalculator
 
             float distance = Mathf.Sqrt(sqrDistance);
             desired += difference / (distance * distance);
+
+            if (sqrDistance < nearestSqr)
+            {
+                nearestSqr = sqrDistance;
+                nearestOffset = difference;
+            }
+
             count++;
         }
 
-        if (count == 0 || desired.sqrMagnitude <= 0.0001f) return Vector3.zero;
+        if (count == 0) return Vector3.zero;
 
         desired /= count;
+
+        // En configuraciones simétricas (por ejemplo, boids rodeándose entre sí)
+        // las repulsiones pueden cancelarse y dar cero. En ese caso usamos la
+        // dirección del vecino más cercano para que siempre haya separación.
+        if (desired.sqrMagnitude <= 0.0001f)
+            desired = nearestOffset;
+
         return CalculateSteering(velocity, desired.normalized * maxSpeed, maxForce);
     }
 

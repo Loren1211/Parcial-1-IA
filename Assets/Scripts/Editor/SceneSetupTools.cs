@@ -209,7 +209,6 @@ public static class SceneSetupTools
         SetFloat(serialized, "_detectionInterval", 0.15f);
         SetFloat(serialized, "_evadeWeight", 1.5f);
         SetFloat(serialized, "_arriveWeight", 1f);
-        SetFloat(serialized, "_separationDampen", 0.2f);
         SetBool(serialized, "_drawGizmos", true);
         serialized.ApplyModifiedPropertiesWithoutUndo();
 

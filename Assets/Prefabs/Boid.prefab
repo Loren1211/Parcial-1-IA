@@ -130,13 +130,12 @@ MonoBehaviour:
   _maxSpeed: 5
   _maxForce: 10
   _viewRadius: 5
-  _separationRadius: 2
+  _separationRadius: 3
   _separationWeight: 1.5
-  _cohesionWeight: 1
-  _alignmentWeight: 1
+  _cohesionWeight: 0.6
+  _alignmentWeight: 0.8
   _evadeWeight: 1.5
   _arriveWeight: 1
-  _separationDampen: 0.2
   _arriveRadius: 3
   _interactRadius: 1
   _respawnDelay: 3

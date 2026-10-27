@@ -21,7 +21,6 @@ public class BoidSettings
     public float detectionInterval = 0.15f;
     public float evadeWeight = 1.5f;
     public float arriveWeight = 1f;
-    public float separationDampen = 0.2f;
     public float maxHealth = 100f;
     public float respawnDelay = 3f;
 }
