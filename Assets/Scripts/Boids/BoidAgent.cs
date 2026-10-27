@@ -9,7 +9,7 @@ public class BoidAgent : MonoBehaviour
     [Header("Stats")]
     [SerializeField] private float _maxSpeed = 5f;
     [SerializeField] private float _maxForce = 10f;
-    [SerializeField] private float _viewRadius = 5f;
+    [SerializeField] private float _viewRadius = 6f;
 
     [Header("Flocking values")]
     [SerializeField] private float _separationRadius = 3f;

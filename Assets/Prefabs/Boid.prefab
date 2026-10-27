@@ -129,7 +129,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BoidAgent
   _maxSpeed: 5
   _maxForce: 10
-  _viewRadius: 5
+  _viewRadius: 6
   _separationRadius: 3
   _separationWeight: 1.5
   _cohesionWeight: 0.6
