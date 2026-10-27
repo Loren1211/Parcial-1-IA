@@ -45,7 +45,7 @@ public class BoidBehaviorController
         }
 
         InterestObject interest = _sensor.NearestInterest;
-        if (interest != null)
+        if (interest != null && interest.IsAlive)
         {
             float sqrDistance = (interest.transform.position - _owner.transform.position).sqrMagnitude;
 

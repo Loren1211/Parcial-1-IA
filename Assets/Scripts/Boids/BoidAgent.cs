@@ -46,6 +46,9 @@ public class BoidAgent : MonoBehaviour
     private BoidBehaviorController _behavior;
     private BoidHealth _health;
     private BoidInteraction _interaction;
+    private BoidFeedback _feedback;
+
+    private float _respawnFlashTimer;
 
     public BoidState State { get; private set; } = BoidState.Flocking;
     public Vector3 Velocity => _motor != null ? _motor.Velocity : Vector3.zero;
@@ -55,6 +58,7 @@ public class BoidAgent : MonoBehaviour
     public bool IsCollected => _health != null && _health.IsCollected;
     public float Health => _health != null ? _health.CurrentHealth : 0f;
     public float MaxHealth => _health != null ? _health.MaxHealth : _maxHealth;
+    public float RespawnTimeRemaining => _health != null ? _health.RespawnTimeRemaining : 0f;
     public BoidSensor Sensor => _sensor;
     public InterestObject CurrentInterest => _interaction != null ? _interaction.CurrentTarget : null;
 
@@ -102,6 +106,7 @@ public class BoidAgent : MonoBehaviour
 
         _interaction = new BoidInteraction(this, _interactRadius);
         _behavior = new BoidBehaviorController(this, _sensor, _interaction, _settings);
+        _feedback = new BoidFeedback(GetComponent<Renderer>());
     }
 
     private void Start()
@@ -123,9 +128,19 @@ public class BoidAgent : MonoBehaviour
 
         _health.Tick(deltaTime);
 
+        if (_respawnFlashTimer > 0f)
+            _respawnFlashTimer -= deltaTime;
+
         if (!_health.IsActive)
         {
             _motor.Stop();
+            _feedback.Tick(
+                State,
+                _health.IsDead,
+                _health.IsCollected,
+                _respawnFlashTimer > 0f,
+                _health.CurrentHealth,
+                _health.MaxHealth);
             return;
         }
 
@@ -146,6 +161,14 @@ public class BoidAgent : MonoBehaviour
 
         _motor.Apply(_behavior.Steering, deltaTime);
         _interaction.Tick(deltaTime);
+
+        _feedback.Tick(
+            State,
+            _health.IsDead,
+            _health.IsCollected,
+            _respawnFlashTimer > 0f,
+            _health.CurrentHealth,
+            _health.MaxHealth);
     }
 
     private void ScatterFromInterest()
@@ -177,6 +200,7 @@ public class BoidAgent : MonoBehaviour
         _interaction.Cancel();
         _motor.Stop();
         State = BoidState.Dead;
+        FeedbackManager.Instance?.NotifyBoidDied(this);
     }
 
     /// <summary>
@@ -206,6 +230,8 @@ public class BoidAgent : MonoBehaviour
 
         _motor.SetVelocity(randomDirection.normalized * _maxSpeed);
         State = BoidState.Flocking;
+        _respawnFlashTimer = 0.9f;
+        FeedbackManager.Instance?.NotifyRespawn(this);
     }
 
     private void OnValidate()

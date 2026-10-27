@@ -2,7 +2,8 @@ using UnityEngine;
 
 /// <summary>
 /// Configuración y dueño de la FSM del cazador.
-/// La detección vive en HunterSensor y las transiciones en cada estado.
+/// El movimiento vive en HunterMotor, el combate en HunterCombat, la
+/// percepción en HunterSensor y los cebos en HunterInterestSpawner.
 /// </summary>
 public class HunterAgent : MonoBehaviour
 {
@@ -42,23 +43,24 @@ public class HunterAgent : MonoBehaviour
     public GameObject InterestObjectPrefab => _interestObjectPrefab;
     public float InterestSpawnInterval => _interestSpawnInterval;
     public int MaxInterestObjects => _maxInterestObjects;
-    public HunterSensor Sensor { get; private set; }
-    public Vector3 Velocity { get; private set; }
 
+    public HunterSensor Sensor { get; private set; }
+    public HunterMotor Motor { get; private set; }
+    public HunterCombat Combat { get; private set; }
+    public HunterInterestSpawner InterestSpawner { get; private set; }
+    public HunterFeedback Feedback { get; private set; }
+
+    public Vector3 Velocity => Motor != null ? Motor.Velocity : Vector3.zero;
+    public float TbaRemaining => Combat != null ? Combat.TbaRemaining : 0f;
     public BoidAgent CurrentTarget { get; set; }
     public string LastAction { get; set; } = "Ninguna";
+    public float GatherProgress { get; set; }
     public int DetectedBoidsCount => Sensor != null ? Sensor.DetectedBoidsCount : 0;
 
     private readonly FiniteStateMachine<States> _fsm = new();
     public FiniteStateMachine<States> FSM => _fsm;
 
-    private float _tbaTimer;
-    private Vector3 _lastPosition;
-    private States _lastLoggedState;
-    private string _lastChangeLog = "Inicio en Patrol";
-
-    public bool CanAttack() => _tbaTimer <= 0f;
-    public void ResetTBA() => _tbaTimer = _tba;
+    public bool CanAttack() => Combat != null && Combat.CanAttack;
 
     private void Awake()
     {
@@ -66,48 +68,71 @@ public class HunterAgent : MonoBehaviour
             _patrolRoute = FindFirstObjectByType<PatrolRoute>();
 
         Sensor = new HunterSensor(transform, _boidLayer, _perceptionRadius, _detectionInterval);
+        Motor = new HunterMotor(transform, _speed);
+        Combat = new HunterCombat(_tba, _meleeDamage, _rangeDamage);
+        InterestSpawner = new HunterInterestSpawner(this);
+        Feedback = new HunterFeedback(GetComponent<Renderer>());
+
+        Combat.Attacked += OnAttacked;
+        Combat.Killed += OnKilled;
     }
 
     private void Start()
     {
-        _lastPosition = transform.position;
-
         _fsm.AddState(States.Patrol, new HunterPatrolState(this));
         _fsm.AddState(States.Attack, new HunterAttackState(this));
         _fsm.AddState(States.Gather, new HunterGatherState(this));
+        _fsm.OnStateChanged += OnStateChanged;
         _fsm.ChangeState(States.Patrol);
     }
 
     private void Update()
     {
-        if (_tbaTimer > 0f) _tbaTimer -= Time.deltaTime;
+        float deltaTime = Time.deltaTime;
 
+        Combat.Tick(deltaTime);
         Sensor.Tick();
         _fsm.Update();
-
-        Vector3 delta = transform.position - _lastPosition;
-        Velocity = delta / Mathf.Max(0.0001f, Time.deltaTime);
-        _lastPosition = transform.position;
-
-        if (_fsm.CurrentStateID != _lastLoggedState)
-        {
-            _lastChangeLog = $"{_lastLoggedState} -> {_fsm.CurrentStateID}";
-            _lastLoggedState = _fsm.CurrentStateID;
-        }
+        InterestSpawner.Tick(deltaTime);
+        Motor.Tick(deltaTime);
     }
 
-    private void OnGUI()
+    private void OnDestroy()
     {
-        GUI.Label(new Rect(10, 10, 420, 20), $"Estado actual: {_fsm.CurrentStateID}");
-        GUI.Label(new Rect(10, 30, 420, 20), $"Objetivo actual: {(CurrentTarget != null ? CurrentTarget.name : "Ninguno")}");
-        GUI.Label(new Rect(10, 50, 420, 20), $"Boids detectados: {DetectedBoidsCount}");
-        GUI.Label(new Rect(10, 70, 420, 20), $"Última acción: {LastAction}");
-        GUI.Label(new Rect(10, 90, 420, 20), $"Último cambio: {_lastChangeLog}");
-        GUI.Label(new Rect(10, 110, 420, 20), $"TBA listo: {CanAttack()}");
+        if (Combat != null)
+        {
+            Combat.Attacked -= OnAttacked;
+            Combat.Killed -= OnKilled;
+        }
+
+        _fsm.OnStateChanged -= OnStateChanged;
+    }
+
+    private void OnAttacked(BoidAgent target, bool isMelee)
+    {
+        LastAction = (isMelee ? "Ataque melee a " : "Ataque a distancia a ") + target.name;
+        FeedbackManager.Instance?.NotifyAttack(target, isMelee);
+    }
+
+    private void OnKilled(BoidAgent target)
+    {
+        FeedbackManager.Instance?.NotifyKill(target);
+    }
+
+    private void OnStateChanged(States previous, States current)
+    {
+        Feedback?.SetState(current);
+
+        if (previous == current) return;
+
+        LastAction = $"Estado: {previous} -> {current}";
+        FeedbackManager.Instance?.NotifyHunterStateChanged(previous, current);
     }
 
     private void OnDrawGizmosSelected()
     {
+        if (!FeedbackManager.ShowGizmos) return;
+
         Gizmos.color = new Color(1f, 1f, 1f, 0.4f);
         Gizmos.DrawWireSphere(transform.position, _perceptionRadius);
 

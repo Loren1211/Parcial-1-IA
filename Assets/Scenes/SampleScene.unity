@@ -1191,7 +1191,7 @@ MonoBehaviour:
   _detectionInterval: 0.15
   _patrolRoute: {fileID: 1242961504}
   _interestObjectPrefab: {fileID: 4010727823510141053, guid: 5d9f2f86fa9a5f146ae3c5cae40e999e, type: 3}
-  _interestSpawnInterval: 8
+  _interestSpawnInterval: 4
   _maxInterestObjects: 5
 --- !u!136 &1569198373
 CapsuleCollider:

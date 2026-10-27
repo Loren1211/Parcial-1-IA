@@ -3,6 +3,8 @@
 > Documento de trabajo para resolver las correcciones del profesor y los bugs detectados durante la revisión del código.
 >
 > Proyecto: `E:\Unity\Parcial 1 IA` — Unity 6000.3.17f1 — URP.
+>
+> **Estado:** bloques 0–8 implementados. Compilación estática sin errores. El playtest, el profiler y el build standalone quedan pendientes de ejecutar en Unity (ver `QA_CHECKLIST.md`).
 
 ---
 
