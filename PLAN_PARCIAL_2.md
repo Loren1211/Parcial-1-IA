@@ -164,7 +164,7 @@ Assets/Scripts/
 - [x] HUD con estado del Cazador, lobos, alertas y caminos.
 - [x] Gizmos de FOV y radios.
 - [x] Playtest completo y checklist.
-- [ ] PDF `Nieto Lorenzo Parcial 2.pdf`.
+- [x] PDF `Nieto Lorenzo Parcial 2.pdf`.
 - [ ] Push del repo público y merge a `main`.
 
 ## Resultado del playtest automatizado
