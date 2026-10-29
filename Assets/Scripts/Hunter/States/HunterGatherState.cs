@@ -17,15 +17,19 @@ public class HunterGatherState : HunterStateBase
         _timer = 0f;
 
         if (_target == null)
-            _fsm.ChangeState(HunterAgent.States.Patrol);
+        {
+            _fsm.ChangeState(Hunter.IdleState);
+        }
     }
 
     public override void Update()
     {
+        if (CheckPriorityTransitions()) return;
+
         if (_target == null || !_target.IsDead || _target.IsCollected)
         {
             FeedbackManager.Instance?.AddLog("GATHER CANCELADO: objetivo no disponible");
-            _fsm.ChangeState(HunterAgent.States.Patrol);
+            _fsm.ChangeState(Hunter.IdleState);
             return;
         }
 
@@ -33,7 +37,7 @@ public class HunterGatherState : HunterStateBase
 
         if (distance > StopRadius)
         {
-            MoveTowards(_target.transform.position);
+            NavigateTowards(_target.transform.position);
             return;
         }
 
@@ -44,8 +48,9 @@ public class HunterGatherState : HunterStateBase
         {
             Hunter.LastAction = "Recolectó a " + _target.name;
             FeedbackManager.Instance?.NotifyGather(_target);
+            Hunter.AddGather();
             _target.Collect();
-            _fsm.ChangeState(HunterAgent.States.Patrol);
+            _fsm.ChangeState(Hunter.IdleState);
         }
     }
 

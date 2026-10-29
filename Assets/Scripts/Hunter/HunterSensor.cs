@@ -11,6 +11,8 @@ public class HunterSensor
 
     private readonly Transform _transform;
     private readonly int _boidMask;
+    private readonly int _obstacleMask;
+    private readonly bool _useLineOfSight;
     private readonly float _perceptionRadius;
     private readonly float _interval;
 
@@ -25,13 +27,23 @@ public class HunterSensor
     public BoidAgent NearestActiveBoid { get; private set; }
     public BoidAgent NearestInactiveBoid { get; private set; }
     public bool HasActiveBoids => _activeBoids.Count > 0;
-    public bool HasInactiveBoids => _inactiveBoids.Count > 0;
+    public bool HasInactiveBoids => NearestInactiveBoid != null
+        && NearestInactiveBoid.IsDead
+        && !NearestInactiveBoid.IsCollected;
     public int DetectedBoidsCount => _activeBoids.Count;
 
-    public HunterSensor(Transform transform, LayerMask boidLayer, float perceptionRadius, float interval)
+    public HunterSensor(
+        Transform transform,
+        LayerMask boidLayer,
+        float perceptionRadius,
+        float interval,
+        LayerMask obstacleMask = default,
+        bool useLineOfSight = false)
     {
         _transform = transform;
         _boidMask = boidLayer.value;
+        _obstacleMask = obstacleMask.value;
+        _useLineOfSight = useLineOfSight;
         _perceptionRadius = perceptionRadius;
         _interval = Mathf.Max(0.02f, interval);
         _nextTick = Time.time + Random.Range(0f, _interval);
@@ -69,6 +81,8 @@ public class HunterSensor
             float sqrDistance = (boid.transform.position - _transform.position).sqrMagnitude;
             if (sqrDistance > perceptionSqr) continue;
 
+            if (_useLineOfSight && !HasLineOfSight(boid.transform.position)) continue;
+
             if (boid.IsDead && !boid.IsCollected)
             {
                 _inactiveBoids.Add(boid);
@@ -96,5 +110,19 @@ public class HunterSensor
     {
         Gizmos.color = new Color(1f, 1f, 1f, 0.4f);
         Gizmos.DrawWireSphere(position, _perceptionRadius);
+    }
+
+    private bool HasLineOfSight(Vector3 position)
+    {
+        if (_obstacleMask == 0) return true;
+
+        Vector3 origin = _transform.position + Vector3.up * 0.6f;
+        Vector3 target = new(position.x, origin.y, position.z);
+
+        return !Physics.Linecast(
+            origin,
+            target,
+            _obstacleMask,
+            QueryTriggerInteraction.Ignore);
     }
 }

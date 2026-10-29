@@ -7,18 +7,19 @@ using UnityEngine;
 public class HunterMotor
 {
     private readonly Transform _transform;
-    private readonly float _speed;
+    private readonly float _baseSpeed;
 
     private Vector3 _lastPosition;
     private Vector3 _velocity;
 
     public Vector3 Velocity => _velocity;
-    public float Speed => _speed;
+    public float Speed => _baseSpeed * SpeedMultiplier;
+    public float SpeedMultiplier { get; set; } = 1f;
 
     public HunterMotor(Transform transform, float speed)
     {
         _transform = transform;
-        _speed = Mathf.Max(0.1f, speed);
+        _baseSpeed = Mathf.Max(0.1f, speed);
         _lastPosition = transform.position;
     }
 
@@ -30,7 +31,7 @@ public class HunterMotor
         if (direction.sqrMagnitude <= 0.0001f) return;
 
         direction.Normalize();
-        float step = Mathf.Min(_speed * deltaTime, (position - _transform.position).magnitude);
+        float step = Mathf.Min(Speed * deltaTime, (position - _transform.position).magnitude);
         _transform.position += direction * step;
         FaceDirection(direction);
     }

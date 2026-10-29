@@ -36,9 +36,11 @@ public static class Parcial2NavTools
         }
 
         Debug.Log("[Parcial 2] Grafo: " + graph.NodeCount + " nodos | " +
-            graph.SafeNodeCount + " en zonas seguras");
+            graph.SafeNodeCount + " en zonas seguras | " +
+            graph.WolfBlockedNodeCount + " bloqueados para lobos");
 
         LogSafeZoneNodes(graph);
+        LogRoutes(graph);
 
         NavPath path = new();
 
@@ -73,6 +75,42 @@ public static class Parcial2NavTools
             Debug.Log("[Parcial 2] " + zone.name + ": " + total +
                 " nodos dentro | " + walkable + " caminables | " +
                 zone.Bounds.size.ToString("F1"));
+        }
+    }
+
+    private static void LogRoutes(NavGraph graph)
+    {
+        PatrolRoute[] routes = Object.FindObjectsByType<PatrolRoute>(FindObjectsSortMode.None);
+        NavPath path = new();
+
+        foreach (PatrolRoute route in routes)
+        {
+            if (route == null || route.Count < 2) continue;
+
+            bool avoidSafeZones = route.name.StartsWith("Wolf");
+            bool allFound = true;
+            float totalLength = 0f;
+
+            for (int i = 0; i < route.Count - 1; i++)
+            {
+                Vector3 from = route.Waypoints[i].position;
+                Vector3 to = route.Waypoints[i + 1].position;
+
+                if (!graph.GetPath(from, to, avoidSafeZones, path))
+                {
+                    allFound = false;
+                    Debug.LogWarning("[Parcial 2] " + route.name + " tramo " + i +
+                        " SIN CAMINO (" + from.ToString("F1") + " -> " + to.ToString("F1") + ")");
+                    continue;
+                }
+
+                totalLength += path.Length;
+            }
+
+            Debug.Log("[Parcial 2] Ruta " + route.name + ": " + route.Count +
+                " waypoints | " + (allFound ? "OK" : "INCOMPLETA") +
+                " | largo " + totalLength.ToString("F1") +
+                (avoidSafeZones ? " | evita zonas seguras" : ""));
         }
     }
 

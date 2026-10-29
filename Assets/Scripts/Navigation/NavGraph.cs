@@ -32,6 +32,7 @@ public class NavGraph : MonoBehaviour
     public bool IsReady => Data != null && Data.IsValid;
     public int NodeCount => IsReady ? Data.Nodes.Length : 0;
     public int SafeNodeCount { get; private set; }
+    public int WolfBlockedNodeCount { get; private set; }
 
     private void Awake()
     {
@@ -104,7 +105,7 @@ public class NavGraph : MonoBehaviour
             NavNode node = nodes[i];
 
             if (!node.Walkable) continue;
-            if (avoidSafeZones && node.InSafeZone) continue;
+            if (avoidSafeZones && node.WolfBlocked) continue;
 
             float sqr = (node.Position - position).sqrMagnitude;
             if (sqr >= bestSqr) continue;
@@ -132,7 +133,7 @@ public class NavGraph : MonoBehaviour
         for (int i = 1; i < steps; i++)
         {
             Vector3 point = Vector3.Lerp(from, to, i / (float)steps);
-            if (ZoneVolume.IsInsideSafeZone(point)) return true;
+            if (ZoneVolume.IsInsideWolfExcluded(point)) return true;
         }
 
         return false;
@@ -161,6 +162,7 @@ public class NavGraph : MonoBehaviour
     private void MarkSafeZones()
     {
         SafeNodeCount = 0;
+        WolfBlockedNodeCount = 0;
 
         if (!IsReady) return;
 
@@ -171,16 +173,31 @@ public class NavGraph : MonoBehaviour
         {
             if (!nodes[i].Walkable) continue;
 
+            bool inSafe = false;
+            bool wolfBlocked = false;
+
             for (int z = 0; z < zones.Length; z++)
             {
                 ZoneVolume zone = zones[z];
-                if (zone == null || zone.Kind != ZoneKind.Safe) continue;
+                if (zone == null) continue;
                 if (!zone.Contains(nodes[i].Position)) continue;
 
-                nodes[i].InSafeZone = true;
-                SafeNodeCount++;
-                break;
+                if (zone.Kind == ZoneKind.Safe)
+                {
+                    inSafe = true;
+                    wolfBlocked = true;
+                }
+                else if (zone.Kind == ZoneKind.Initial)
+                {
+                    wolfBlocked = true;
+                }
             }
+
+            nodes[i].InSafeZone = inSafe;
+            nodes[i].WolfBlocked = wolfBlocked;
+
+            if (inSafe) SafeNodeCount++;
+            if (wolfBlocked) WolfBlockedNodeCount++;
         }
     }
 

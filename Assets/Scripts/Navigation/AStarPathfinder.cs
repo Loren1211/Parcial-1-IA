@@ -21,7 +21,7 @@ public static class AStarPathfinder
         if (start < 0 || goal < 0) return false;
         if (start >= graph.Nodes.Length || goal >= graph.Nodes.Length) return false;
         if (!graph.Nodes[start].Walkable || !graph.Nodes[goal].Walkable) return false;
-        if (avoidSafeZones && graph.Nodes[goal].InSafeZone) return false;
+        if (avoidSafeZones && graph.Nodes[goal].WolfBlocked) return false;
 
         if (start == goal)
         {
@@ -68,7 +68,7 @@ public static class AStarPathfinder
                 int next = neighbors[i];
 
                 if (closed[next]) continue;
-                if (avoidSafeZones && graph.Nodes[next].InSafeZone) continue;
+                if (avoidSafeZones && graph.Nodes[next].WolfBlocked) continue;
 
                 float tentative = gScore[current] + Vector3.Distance(
                     graph.Nodes[current].Position,

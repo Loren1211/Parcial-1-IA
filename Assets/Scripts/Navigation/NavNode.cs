@@ -9,5 +9,6 @@ public struct NavNode
     public Vector3 Position;
     public int[] Neighbors;
     public bool InSafeZone;
+    public bool WolfBlocked;
     public bool Walkable;
 }

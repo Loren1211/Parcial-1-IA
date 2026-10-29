@@ -1,6 +1,8 @@
-# Parcial 1 — IA en Videojuegos
+# Parcial 1 y 2 — IA en Videojuegos
 
 Simulación de un cardumen de **boids autónomos** y un **cazador con máquina de estados finitos (FSM)**. Cada boid decide por su cuenta usando percepción limitada y steering (Separation, Alignment, Cohesion, Arrive y Evade). El cazador patrulla por waypoints, genera cebos, ataca con TBA y recolecta cadáveres.
+
+El **Parcial 2** agrega un escenario en anillo, zonas, una jauría de lobos y una FSM ampliada del Cazador con navegación A* propia. Se ejecuta desde `Assets/Scenes/Parcial2.unity`; el Parcial 1 sigue disponible en `Assets/Scenes/SampleScene.unity`.
 
 El proyecto está pensado para que cada requisito de la consigna sea visible en pantalla: colores por estado, etiquetas 3D, barras de vida/TBA, log de eventos y gizmos de radios.
 
@@ -156,7 +158,16 @@ piso propio. El HUD muestra una leyenda con las zonas activas.
 
 ### Estado
 
-- Fase 0 (preparación) y Fase 1 (escenario y zonas): completas.
-- Navegación, lobos y FSM ampliada del Cazador: en desarrollo.
+- Fase 0 (preparación), Fase 1 (escenario y zonas), Fase 2 (navegación),
+  Fase 3 (lobos) y Fase 4 (FSM ampliada del Cazador): completas.
+- Fase 5 (feedback y QA): HUD, gizmos y playtest completos; quedan el PDF y
+  el push del repositorio.
+
+Playtest automatizado (`Parcial2Playtest`, 180 s simulados, `timeScale = 4`):
+
+- 3/3 recolecciones y escape por la Salida.
+- 0 capturas y 0 muestras de lobos dentro de zonas seguras.
+- Estados visitados: Cazador `Search`, `Attack`, `Gather`, `Flee`, `Exit`;
+  lobos `Patrol`, `Alert`, `Chase`, `Return`.
 
 Ver `PLAN_PARCIAL_2.md` para el plan completo y los criterios de aceptación.

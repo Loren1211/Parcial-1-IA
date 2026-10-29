@@ -28,6 +28,10 @@ public class HunterFeedback
             HunterAgent.States.Patrol => new Color(0.2f, 0.5f, 1f),
             HunterAgent.States.Attack => new Color(1f, 0.15f, 0.15f),
             HunterAgent.States.Gather => new Color(1f, 0.85f, 0.1f),
+            HunterAgent.States.Search => new Color(0.2f, 0.5f, 1f),
+            HunterAgent.States.Flee => new Color(0.7f, 0.4f, 1f),
+            HunterAgent.States.Exit => new Color(0.3f, 0.8f, 1f),
+            HunterAgent.States.Dead => new Color(0.25f, 0.25f, 0.25f),
             _ => Color.white
         };
 

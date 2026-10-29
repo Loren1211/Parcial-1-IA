@@ -101,6 +101,15 @@ public class ZoneVolume : MonoBehaviour
     public static bool IsInsideSafeZone(Vector3 position) => IsInside(ZoneKind.Safe, position);
 
     /// <summary>
+    /// Zonas en las que un lobo no puede entrar: los refugios seguros y la
+    /// zona inicial, para que la jauria no pueda acampar el spawn del Cazador.
+    /// </summary>
+    public static bool IsInsideWolfExcluded(Vector3 position)
+    {
+        return IsInside(ZoneKind.Safe, position) || IsInside(ZoneKind.Initial, position);
+    }
+
+    /// <summary>
     /// Configuracion usada por el generador de escena. Mantiene los campos
     /// serializados para que el dato quede guardado en el .unity.
     /// </summary>

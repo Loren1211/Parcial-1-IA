@@ -1,8 +1,16 @@
 using UnityEngine;
 
+/// <summary>
+/// Ataque del cazador. Mantiene el objetivo hasta matarlo: si se aleja lo
+/// persigue con A* en vez de volver a Search, que provocaba un ciclo
+/// Attack/Search por frame y dejaba al cazador sin recolecciones.
+/// </summary>
 public class HunterAttackState : HunterStateBase
 {
+    private const float LostTargetTime = 2f;
+
     private BoidAgent _target;
+    private float _lostTimer;
 
     public HunterAttackState(HunterAgent hunter) : base(hunter) { }
 
@@ -10,22 +18,40 @@ public class HunterAttackState : HunterStateBase
     {
         _target = Hunter.Sensor.NearestActiveBoid;
         Hunter.CurrentTarget = _target;
+        _lostTimer = 0f;
 
         if (_target == null)
-            _fsm.ChangeState(HunterAgent.States.Patrol);
+            _fsm.ChangeState(Hunter.IdleState);
     }
 
     public override void Update()
     {
-        if (_target == null || !StillInPerception())
+        if (CheckPriorityTransitions()) return;
+
+        if (_target == null || _target.IsCollected)
         {
-            _fsm.ChangeState(HunterAgent.States.Patrol);
+            _fsm.ChangeState(Hunter.IdleState);
             return;
         }
 
         if (!_target.IsActive)
         {
-            _fsm.ChangeState(HunterAgent.States.Gather);
+            if (_target.IsDead && !_target.IsCollected)
+            {
+                _fsm.ChangeState(HunterAgent.States.Gather);
+                return;
+            }
+
+            _fsm.ChangeState(Hunter.IdleState);
+            return;
+        }
+
+        _lostTimer = IsTracked() ? 0f : _lostTimer + Time.deltaTime;
+
+        if (_lostTimer >= LostTargetTime)
+        {
+            Hunter.LastAction = "Objetivo perdido";
+            _fsm.ChangeState(Hunter.IdleState);
             return;
         }
 
@@ -43,7 +69,7 @@ public class HunterAttackState : HunterStateBase
         }
         else
         {
-            MoveTowards(_target.transform.position);
+            NavigateTowards(_target.transform.position);
         }
     }
 
@@ -52,11 +78,15 @@ public class HunterAttackState : HunterStateBase
         Hunter.CurrentTarget = null;
     }
 
-    private bool StillInPerception()
+    private bool IsTracked()
     {
-        if (_target == null) return false;
+        var tracked = Hunter.Sensor.ActiveBoids;
 
-        return Vector3.Distance(Hunter.transform.position, _target.transform.position)
-               <= Hunter.PerceptionRadius;
+        for (int i = 0; i < tracked.Count; i++)
+        {
+            if (tracked[i] == _target) return true;
+        }
+
+        return false;
     }
 }

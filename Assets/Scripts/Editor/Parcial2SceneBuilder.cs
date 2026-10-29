@@ -48,15 +48,15 @@ public static class Parcial2SceneBuilder
         BuildZones(zones.transform);
 
         GameObject agents = new("--- AGENTS ---");
+        GameObject systems = new("--- SYSTEMS ---");
+        NavGraph navGraph = BuildSystems(systems.transform);
+
         GameObject hunterObject = BuildHunter(agents.transform, hunterMaterial);
         BuildBoids(agents.transform);
-        BuildWolfSpawnPoints(agents.transform);
+        WolfAgent[] wolves = BuildWolves(agents.transform, wolfMaterial, navGraph);
 
         GameObject routes = new("--- PATROL ROUTES ---");
-        BuildRoutes(routes.transform, hunterObject);
-
-        GameObject systems = new("--- SYSTEMS ---");
-        BuildSystems(systems.transform);
+        BuildRoutes(routes.transform, hunterObject, wolves);
 
         BuildCamera(environment.transform);
         BuildLight(environment.transform);
@@ -272,15 +272,26 @@ public static class Parcial2SceneBuilder
         GameObject interestPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(InterestPrefabPath);
 
         SerializedObject serialized = new(agent);
+        SetEnum(serialized, "_mode", (int)HunterAgent.Mode.Parcial2);
         SetInt(serialized, "_boidLayer", GameLayers.Mask(GameLayers.Boid));
+        SetInt(serialized, "_wolfLayer", GameLayers.Mask(GameLayers.Wolf));
+        SetInt(serialized, "_obstacleMask", GameLayers.Mask(GameLayers.Obstacle));
         SetFloat(serialized, "_speed", 7f);
         SetFloat(serialized, "_tba", 2f);
         SetFloat(serialized, "_rangeAttackRadius", 6f);
         SetFloat(serialized, "_meleeAttackRadius", 1.5f);
         SetFloat(serialized, "_perceptionRadius", 10f);
+        SetFloat(serialized, "_wolfDetectionRadius", 5f);
         SetFloat(serialized, "_meleeDamage", 100f);
         SetFloat(serialized, "_rangeDamage", 50f);
         SetFloat(serialized, "_detectionInterval", 0.15f);
+        SetInt(serialized, "_requiredGathers", 3);
+        SetFloat(serialized, "_respawnTime", 5f);
+        SetFloat(serialized, "_safeZoneWaitTime", 3f);
+        SetFloat(serialized, "_spawnProtectionTime", 2f);
+        SetFloat(serialized, "_fleeCommitTime", 3f);
+        SetFloat(serialized, "_fleeSpeedMultiplier", 1.3f);
+        SetFloat(serialized, "_panicRadius", 1.2f);
         SetFloat(serialized, "_interestSpawnInterval", 4f);
         SetInt(serialized, "_maxInterestObjects", 5);
         SetObject(serialized, "_interestObjectPrefab", interestPrefab);
@@ -319,23 +330,71 @@ public static class Parcial2SceneBuilder
         }
     }
 
-    private static void BuildWolfSpawnPoints(Transform parent)
+    private static WolfAgent[] BuildWolves(Transform parent, Material material, NavGraph navGraph)
     {
-        GameObject spawns = CreateChild("Wolf Spawn Points", parent);
+        GameObject wolvesParent = CreateChild("Wolves", parent);
 
-        CreateMarker(spawns.transform, "WolfSpawn_1", new Vector3(-12f, 1f, 7.2f));
-        CreateMarker(spawns.transform, "WolfSpawn_2", new Vector3(-11f, 1f, 7.2f));
-        CreateMarker(spawns.transform, "WolfSpawn_3", new Vector3(12f, 1f, 7.2f));
-        CreateMarker(spawns.transform, "WolfSpawn_4", new Vector3(-11f, 1f, -7.2f));
+        Vector3[] positions =
+        {
+            new(-2.5f, 1f, 10.5f),
+            new(2.5f, 1f, 12.2f),
+            new(-2.5f, 1f, -10.5f),
+            new(2.5f, 1f, -12.2f)
+        };
+
+        WolfAgent[] wolves = new WolfAgent[positions.Length];
+
+        for (int i = 0; i < positions.Length; i++)
+        {
+            GameObject wolf = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            wolf.name = "Wolf_" + (i + 1);
+            wolf.layer = GameLayers.Index(GameLayers.Wolf);
+            wolf.transform.SetParent(wolvesParent.transform, false);
+            wolf.transform.position = positions[i];
+            wolf.transform.localScale = new Vector3(0.8f, 0.9f, 1.2f);
+
+            Renderer renderer = wolf.GetComponent<Renderer>();
+            if (renderer != null) renderer.sharedMaterial = material;
+
+            Rigidbody body = wolf.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+            body.useGravity = false;
+
+            WolfAgent agent = wolf.AddComponent<WolfAgent>();
+            SerializedObject serialized = new(agent);
+            SetInt(serialized, "_obstacleMask", GameLayers.Mask(GameLayers.Obstacle));
+            SetObject(serialized, "_navGraph", navGraph);
+            SetFloat(serialized, "_patrolSpeed", 3.2f);
+            SetFloat(serialized, "_alertSpeed", 4f);
+            SetFloat(serialized, "_chaseSpeed", 4.2f);
+            SetFloat(serialized, "_viewRadius", 8f);
+            SetFloat(serialized, "_fovAngle", 110f);
+            SetFloat(serialized, "_captureRadius", 1f);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorUtility.SetDirty(agent);
+            wolves[i] = agent;
+        }
+
+        return wolves;
     }
 
-    private static void BuildRoutes(Transform parent, GameObject hunterObject)
+    private static void BuildRoutes(Transform parent, GameObject hunterObject, WolfAgent[] wolves)
     {
         PatrolRoute hunterRoute = CreateRoute(
             parent,
             "Hunter Route",
             PatrolRoute.RouteMode.PingPong,
-            new Vector3(-18.5f, 1f, 0f));
+            new Vector3(-18.5f, 1f, 0f),
+            new Vector3(-10f, 1f, 7.2f),
+            new Vector3(0f, 1f, 7.2f),
+            new Vector3(0f, 1f, 5.5f),
+            new Vector3(0f, 1f, 0f),
+            new Vector3(0f, 1f, -5.5f),
+            new Vector3(0f, 1f, -7.2f),
+            new Vector3(10f, 1f, -7.2f),
+            new Vector3(18.5f, 1f, 0f),
+            new Vector3(10f, 1f, 7.2f));
 
         if (hunterObject != null)
         {
@@ -346,41 +405,52 @@ public static class Parcial2SceneBuilder
             EditorUtility.SetDirty(hunter);
         }
 
-        CreateRoute(
-            parent,
-            "Wolf Route L1",
-            PatrolRoute.RouteMode.PingPong,
-            new Vector3(-12f, 1f, 7.2f),
-            new Vector3(-12f, 1f, -7.2f));
+        PatrolRoute[] wolfRoutes =
+        {
+            // La jauria patrulla las salas norte y sur, junto a las entradas
+            // del Coto. Asi amenaza la caceria sin acampar el Coto ni las
+            // bocas de los callejones seguros.
+            CreateRoute(
+                parent,
+                "Wolf Route L1",
+                PatrolRoute.RouteMode.PingPong,
+                new Vector3(-2.5f, 1f, 10.5f),
+                new Vector3(2.5f, 1f, 10.5f)),
 
-        CreateRoute(
-            parent,
-            "Wolf Route L2",
-            PatrolRoute.RouteMode.PingPong,
-            new Vector3(-11f, 1f, 7.2f),
-            new Vector3(-4f, 1f, 7.2f),
-            new Vector3(0f, 1f, 7.2f),
-            new Vector3(0f, 1f, 12f),
-            new Vector3(4f, 1f, 7.2f),
-            new Vector3(11f, 1f, 7.2f));
+            CreateRoute(
+                parent,
+                "Wolf Route L2",
+                PatrolRoute.RouteMode.PingPong,
+                new Vector3(2.5f, 1f, 12.2f),
+                new Vector3(-2.5f, 1f, 12.2f)),
 
-        CreateRoute(
-            parent,
-            "Wolf Route L3",
-            PatrolRoute.RouteMode.PingPong,
-            new Vector3(12f, 1f, 7.2f),
-            new Vector3(12f, 1f, -7.2f));
+            CreateRoute(
+                parent,
+                "Wolf Route L3",
+                PatrolRoute.RouteMode.PingPong,
+                new Vector3(-2.5f, 1f, -10.5f),
+                new Vector3(2.5f, 1f, -10.5f)),
 
-        CreateRoute(
-            parent,
-            "Wolf Route L4",
-            PatrolRoute.RouteMode.PingPong,
-            new Vector3(-11f, 1f, -7.2f),
-            new Vector3(-4f, 1f, -7.2f),
-            new Vector3(0f, 1f, -7.2f),
-            new Vector3(0f, 1f, -12f),
-            new Vector3(4f, 1f, -7.2f),
-            new Vector3(11f, 1f, -7.2f));
+            CreateRoute(
+                parent,
+                "Wolf Route L4",
+                PatrolRoute.RouteMode.PingPong,
+                new Vector3(2.5f, 1f, -12.2f),
+                new Vector3(-2.5f, 1f, -12.2f))
+        };
+
+        if (wolves == null) return;
+
+        for (int i = 0; i < wolves.Length && i < wolfRoutes.Length; i++)
+        {
+            WolfAgent wolf = wolves[i];
+            if (wolf == null) continue;
+
+            SerializedObject serialized = new(wolf);
+            SetObject(serialized, "_patrolRoute", wolfRoutes[i]);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(wolf);
+        }
     }
 
     private static PatrolRoute CreateRoute(Transform parent, string name, PatrolRoute.RouteMode mode, params Vector3[] points)
@@ -397,7 +467,7 @@ public static class Parcial2SceneBuilder
         return route;
     }
 
-    private static void BuildSystems(Transform parent)
+    private static NavGraph BuildSystems(Transform parent)
     {
         GameObject boundsObject = CreateChild("Bounds", parent);
         WorldBounds bounds = boundsObject.AddComponent<WorldBounds>();
@@ -423,6 +493,8 @@ public static class Parcial2SceneBuilder
         GameObject feedbackObject = CreateChild("Feedback", parent);
         feedbackObject.AddComponent<FeedbackManager>();
         feedbackObject.AddComponent<FeedbackHUD>();
+
+        return navGraph;
     }
 
     private static void BuildCamera(Transform parent)
@@ -652,6 +724,7 @@ public static class Parcial2SceneBuilder
     {
         BoidAgent[] boids = Object.FindObjectsByType<BoidAgent>(FindObjectsSortMode.None);
         HunterAgent hunter = Object.FindFirstObjectByType<HunterAgent>();
+        WolfAgent[] wolves = Object.FindObjectsByType<WolfAgent>(FindObjectsSortMode.None);
         ZoneVolume[] zones = Object.FindObjectsByType<ZoneVolume>(FindObjectsSortMode.None);
         PatrolRoute[] routes = Object.FindObjectsByType<PatrolRoute>(FindObjectsSortMode.None);
         WorldBounds bounds = Object.FindFirstObjectByType<WorldBounds>();
@@ -667,18 +740,22 @@ public static class Parcial2SceneBuilder
         NavGraph navGraph = Object.FindFirstObjectByType<NavGraph>();
         int navNodes = 0;
         int safeNodes = 0;
+        int wolfBlockedNodes = 0;
 
         if (navGraph != null)
         {
             navGraph.Bake();
             navNodes = navGraph.NodeCount;
             safeNodes = navGraph.SafeNodeCount;
+            wolfBlockedNodes = navGraph.WolfBlockedNodeCount;
         }
 
         Debug.Log("[Parcial 2] Boids: " + boids.Length + " | Hunter: " + (hunter != null) +
+            " | Lobos: " + wolves.Length +
             " | Zonas: " + zones.Length + " (seguras: " + safeZones + ")" +
             " | Rutas: " + routes.Length + " | Bounds: " + (bounds != null) +
-            " | Nav: " + navNodes + " nodos (" + safeNodes + " seguros)" +
+            " | Nav: " + navNodes + " nodos (" + safeNodes + " seguros, " +
+            wolfBlockedNodes + " bloqueados para lobos)" +
             " | Tracker: " + (tracker != null) + " | Feedback: " + (feedback != null));
     }
 
@@ -698,5 +775,11 @@ public static class Parcial2SceneBuilder
     {
         SerializedProperty property = serialized.FindProperty(propertyName);
         if (property != null) property.floatValue = value;
+    }
+
+    private static void SetEnum(SerializedObject serialized, string propertyName, int value)
+    {
+        SerializedProperty property = serialized.FindProperty(propertyName);
+        if (property != null) property.enumValueIndex = value;
     }
 }

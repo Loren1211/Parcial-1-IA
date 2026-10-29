@@ -11,6 +11,7 @@ public class FeedbackHUD : MonoBehaviour
 
     private HunterAgent _hunter;
     private BoidAgent[] _boids = System.Array.Empty<BoidAgent>();
+    private WolfAgent[] _wolves = System.Array.Empty<WolfAgent>();
     private InterestObject[] _interests = System.Array.Empty<InterestObject>();
     private InterestObjectTracker _tracker;
     private Camera _camera;
@@ -54,6 +55,7 @@ public class FeedbackHUD : MonoBehaviour
         _hunter = FindFirstObjectByType<HunterAgent>();
         _tracker = FindFirstObjectByType<InterestObjectTracker>();
         _boids = FindObjectsByType<BoidAgent>(FindObjectsSortMode.None);
+        _wolves = FindObjectsByType<WolfAgent>(FindObjectsSortMode.None);
         _interests = FindObjectsByType<InterestObject>(FindObjectsSortMode.None);
     }
 
@@ -152,7 +154,7 @@ public class FeedbackHUD : MonoBehaviour
 
     private void DrawHunterPanel(FeedbackManager manager)
     {
-        Rect panel = new Rect(10f, 10f, 420f, 238f);
+        Rect panel = new Rect(10f, 10f, 420f, 266f);
         DrawPanel(panel);
 
         string state = _hunter != null ? _hunter.FSM.CurrentStateID.ToString() : "Sin cazador";
@@ -165,9 +167,18 @@ public class FeedbackHUD : MonoBehaviour
         int baits = _tracker != null ? _tracker.ActiveCount : 0;
         int maxBaits = _hunter != null ? _hunter.MaxInterestObjects : 5;
         int kills = manager != null ? manager.Kills : 0;
-        int gathers = manager != null ? manager.Gathers : 0;
         int respawns = manager != null ? manager.Respawns : 0;
-        int destroyed = manager != null ? manager.BaitsDestroyed : 0;
+
+        int gathers = _hunter != null ? _hunter.Gathers : 0;
+        int required = _hunter != null ? _hunter.RequiredGathers : 3;
+        int pathNodes = _hunter != null && _hunter.Nav != null && _hunter.Nav.HasPath
+            ? _hunter.Nav.Path.Points.Count
+            : 0;
+        string safeZone = _hunter != null && _hunter.ChosenSafeZone != null
+            ? _hunter.ChosenSafeZone.name
+            : "Ninguna";
+        string immunity = _hunter != null && _hunter.IsImmune ? " | INMUNE" : "";
+        string escaped = _hunter != null && _hunter.HasEscaped ? " | ESCAPÓ" : "";
 
         float y = panel.y + 8f;
 
@@ -185,20 +196,35 @@ public class FeedbackHUD : MonoBehaviour
             tba > 0f ? $"TBA {tba:F1}s" : "TBA listo", _smallStyle);
         y += 16f;
 
+        DrawBar(new Rect(panel.x + 10f, y, panel.width - 20f, 8f),
+            required > 0 ? Mathf.Clamp01(gathers / (float)required) : 0f,
+            new Color(1f, 0.85f, 0.1f));
+        GUI.Label(new Rect(panel.x + 14f, y - 3f, panel.width - 28f, 14f),
+            $"RECOLECCIONES {gathers}/{required}{escaped}", _smallStyle);
+        y += 18f;
+
         GUI.Label(new Rect(panel.x + 10f, y, panel.width - 20f, 18f),
-            $"Boids: {_boids.Length}   |   Detectados: {detected}", _labelStyle);
+            $"Lobos: {_wolves.Length}   |   Zona segura: {safeZone}{immunity}", _labelStyle);
+        y += 20f;
+
+        string alert = WolfAlertBus.HasRecentAlert
+            ? $"ALERTA en {WolfAlertBus.LastKnownPosition.ToString("F1")}"
+            : "sin alertas";
+
+        GUI.Label(new Rect(panel.x + 10f, y, panel.width - 20f, 18f),
+            $"Jauría: {alert}", _labelStyle);
         y += 20f;
 
         GUI.Label(new Rect(panel.x + 10f, y, panel.width - 20f, 18f),
-            $"Cebos activos: {baits}/{maxBaits}", _labelStyle);
+            $"Boids: {_boids.Length}   |   Detectados: {detected}   |   A*: {pathNodes} nodos", _labelStyle);
         y += 20f;
 
         GUI.Label(new Rect(panel.x + 10f, y, panel.width - 20f, 18f),
-            $"Kills: {kills}   |   Recolecciones: {gathers}", _labelStyle);
+            $"Kills: {kills}   |   Cebos activos: {baits}/{maxBaits}", _labelStyle);
         y += 20f;
 
         GUI.Label(new Rect(panel.x + 10f, y, panel.width - 20f, 18f),
-            $"Respawns: {respawns}   |   Cebos destruidos: {destroyed}", _labelStyle);
+            $"Respawns: {respawns}", _labelStyle);
         y += 20f;
 
         if (_hunter != null && _hunter.FSM.CurrentStateID == HunterAgent.States.Gather)
@@ -237,7 +263,7 @@ public class FeedbackHUD : MonoBehaviour
 
     private void DrawLegend()
     {
-        Rect panel = new Rect(Screen.width - 300f, 10f, 290f, 228f);
+        Rect panel = new Rect(Screen.width - 300f, 10f, 290f, 34f + 16f * 19f);
         DrawPanel(panel);
 
         GUI.Label(new Rect(panel.x + 10f, panel.y + 8f, panel.width - 20f, 22f), "LEYENDA", _headerStyle);
@@ -254,11 +280,25 @@ public class FeedbackHUD : MonoBehaviour
         y += 19f;
         DrawLegendRow(panel.x + 12f, y, new Color(0.25f, 0.25f, 0.25f), "Boid: Muerto");
         y += 19f;
-        DrawLegendRow(panel.x + 12f, y, new Color(0.2f, 0.5f, 1f), "Hunter: Patrol");
+        DrawLegendRow(panel.x + 12f, y, new Color(0.2f, 0.5f, 1f), "Cazador: Search / Patrol");
         y += 19f;
-        DrawLegendRow(panel.x + 12f, y, new Color(1f, 0.15f, 0.15f), "Hunter: Attack");
+        DrawLegendRow(panel.x + 12f, y, new Color(1f, 0.15f, 0.15f), "Cazador: Attack");
         y += 19f;
-        DrawLegendRow(panel.x + 12f, y, new Color(1f, 0.85f, 0.1f), "Hunter: Gather");
+        DrawLegendRow(panel.x + 12f, y, new Color(1f, 0.85f, 0.1f), "Cazador: Gather");
+        y += 19f;
+        DrawLegendRow(panel.x + 12f, y, new Color(0.7f, 0.4f, 1f), "Cazador: Flee");
+        y += 19f;
+        DrawLegendRow(panel.x + 12f, y, new Color(0.3f, 0.8f, 1f), "Cazador: Exit");
+        y += 19f;
+        DrawLegendRow(panel.x + 12f, y, new Color(0.25f, 0.25f, 0.25f), "Cazador: Dead");
+        y += 19f;
+        DrawLegendRow(panel.x + 12f, y, new Color(0.6f, 0.6f, 0.65f), "Lobo: Patrol");
+        y += 19f;
+        DrawLegendRow(panel.x + 12f, y, new Color(1f, 0.55f, 0.1f), "Lobo: Alert");
+        y += 19f;
+        DrawLegendRow(panel.x + 12f, y, new Color(0.9f, 0.1f, 0.15f), "Lobo: Chase");
+        y += 19f;
+        DrawLegendRow(panel.x + 12f, y, new Color(0.25f, 0.45f, 1f), "Lobo: Return");
         y += 19f;
         DrawLegendRow(panel.x + 12f, y, new Color(0.2f, 1f, 0.4f), "Cebo (vida)");
     }
@@ -280,7 +320,7 @@ public class FeedbackHUD : MonoBehaviour
 
         float rowHeight = 18f;
         float height = 34f + zones.Count * rowHeight;
-        Rect panel = new Rect(Screen.width - 300f, 246f, 290f, height);
+        Rect panel = new Rect(10f, 286f, 420f, height);
         DrawPanel(panel);
 
         GUI.Label(new Rect(panel.x + 10f, panel.y + 8f, panel.width - 20f, 22f), "ZONAS", _headerStyle);
@@ -421,6 +461,22 @@ public class FeedbackHUD : MonoBehaviour
             }
 
             DrawHunterTargetHelpers();
+        }
+
+        for (int i = 0; i < _wolves.Length; i++)
+        {
+            WolfAgent wolf = _wolves[i];
+            if (wolf == null) continue;
+
+            Vector3 screen = _camera.WorldToScreenPoint(wolf.transform.position + Vector3.up * 1.5f);
+            if (screen.z <= 0f) continue;
+
+            string label = $"{wolf.name} | {wolf.FSM.CurrentStateID}";
+
+            DrawWorldLabel(
+                new Vector2(screen.x, Screen.height - screen.y),
+                label,
+                GetWolfColor(wolf.FSM.CurrentStateID));
         }
 
         for (int i = 0; i < _interests.Length; i++)
@@ -629,6 +685,22 @@ public class FeedbackHUD : MonoBehaviour
             HunterAgent.States.Patrol => new Color(0.2f, 0.5f, 1f),
             HunterAgent.States.Attack => new Color(1f, 0.15f, 0.15f),
             HunterAgent.States.Gather => new Color(1f, 0.85f, 0.1f),
+            HunterAgent.States.Search => new Color(0.2f, 0.5f, 1f),
+            HunterAgent.States.Flee => new Color(0.7f, 0.4f, 1f),
+            HunterAgent.States.Exit => new Color(0.3f, 0.8f, 1f),
+            HunterAgent.States.Dead => new Color(0.35f, 0.35f, 0.35f),
+            _ => Color.white
+        };
+    }
+
+    private static Color GetWolfColor(WolfAgent.States state)
+    {
+        return state switch
+        {
+            WolfAgent.States.Patrol => new Color(0.6f, 0.6f, 0.65f),
+            WolfAgent.States.Alert => new Color(1f, 0.55f, 0.1f),
+            WolfAgent.States.Chase => new Color(0.9f, 0.1f, 0.15f),
+            WolfAgent.States.Return => new Color(0.25f, 0.45f, 1f),
             _ => Color.white
         };
     }

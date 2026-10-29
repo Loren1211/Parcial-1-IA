@@ -142,30 +142,49 @@ Assets/Scripts/
 - [x] `AStarPathfinder` con heap y suavizado por LOS.
 - [x] `NavAgent` para seguir caminos.
 - [x] Gizmos del grafo.
-- [ ] Gizmos del camino activo de cada agente (Fase 3/4).
+- [x] Gizmos del camino activo de cada agente (Fase 3/4).
 
 ### Fase 3 — Lobos
 
-- [ ] `WolfAgent`, `WolfSensor`, `WolfMotor`.
-- [ ] FSM de lobo: `Patrol`, `Alert`, `Chase`, `Return`.
-- [ ] Alerta compartida y última posición conocida.
-- [ ] Exclusión de zonas seguras.
-- [ ] 4 lobos en escena con rutas.
+- [x] `WolfAgent`, `WolfSensor`, `WolfMotor`.
+- [x] FSM de lobo: `Patrol`, `Alert`, `Chase`, `Return`.
+- [x] Alerta compartida y última posición conocida.
+- [x] Exclusión de zonas seguras.
+- [x] 4 lobos en escena con rutas.
 
 ### Fase 4 — FSM ampliada del Cazador
 
-- [ ] Estados `Search`, `Flee`, `Exit`, `Dead`.
-- [ ] Prioridad `Dead > Flee > Exit > Gather > Attack > Search`.
-- [ ] `RequiredGathers`, `RespawnTime`, `SafeZoneWaitTime`.
-- [ ] Integración con navegación y percepción de lobos.
+- [x] Estados `Search`, `Flee`, `Exit`, `Dead`.
+- [x] Prioridad `Dead > Flee > Exit > Gather > Attack > Search`.
+- [x] `RequiredGathers`, `RespawnTime`, `SafeZoneWaitTime`.
+- [x] Integración con navegación y percepción de lobos.
 
 ### Fase 5 — Feedback y QA
 
-- [ ] HUD con estado del Cazador, lobos, alertas y caminos.
-- [ ] Gizmos de FOV y radios.
-- [ ] Playtest completo y checklist.
+- [x] HUD con estado del Cazador, lobos, alertas y caminos.
+- [x] Gizmos de FOV y radios.
+- [x] Playtest completo y checklist.
 - [ ] PDF `Nieto Lorenzo Parcial 2.pdf`.
 - [ ] Push del repo público y merge a `main`.
+
+## Resultado del playtest automatizado
+
+`Parcial2Playtest` ejecuta la escena en batchmode con `timeScale = 4` durante
+180 s simulados y registra estados, recolecciones, capturas, alertas y
+violaciones de zonas seguras.
+
+Última corrida (rutas de lobos en las salas norte/sur):
+
+- Recolecciones: **3/3**.
+- Escape por la Salida: **sí**.
+- Capturas: **0**.
+- Lobos dentro de zonas seguras: **0 muestras**.
+- Estados del Cazador visitados: `Search`, `Attack`, `Gather`, `Flee`, `Exit`.
+- Estados de lobos visitados: `Patrol`, `Alert`, `Chase`, `Return`.
+- Alertas de jauría: **sí**.
+
+El estado `Dead` queda cubierto por la FSM y por las pruebas de captura
+anteriores; en esta corrida el Cazador llegó a la Salida sin ser capturado.
 
 ## Criterios de aceptación
 
