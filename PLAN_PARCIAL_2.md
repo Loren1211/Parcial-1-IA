@@ -20,25 +20,31 @@ Todo el trabajo del Parcial 2 vive en la rama `feature/parcial-2`.
 
 ## Escenario (Variante A: anillo)
 
-Mapa en forma de anillo perimetral con un bloque central ocupado por el Coto de
-caza. Los extremos izquierdo y derecho del anillo son el Inicio y la Salida.
+Mapa reconstruido sobre una grilla de tiles de 1.5 unidades (32 x 28 tiles
+interiores) que reproduce el mapa de ejemplo: un anillo perimetral de piso
+alrededor de un edificio central, con el Inicio a la izquierda y la Salida a la
+derecha, unidos por el corredor principal.
 
 | Zona | Rol | Capa |
 |---|---|---|
-| `Zone_Initial` | Spawn del Cazador. Punto de partida del recorrido. | `InitialZone` |
-| `Zone_HuntingGround` | Coto de caza: 6 boids reutilizando `WorldBounds`. | `HuntingGround` |
-| `Zone_Safe_A` | Callejón sin salida noreste. Refugio del Cazador. | `SafeZone` |
-| `Zone_Safe_B` | Callejón sin salida suroeste. Refugio del Cazador. | `SafeZone` |
-| `Zone_Exit` | Meta: el Cazador escapa al completar las recolecciones. | `ExitZone` |
-| `Zone_NorthRoom` / `Zone_SouthRoom` | Salas de paso con conectores al Coto. | `Room` |
+| `Zone_Initial` | Spawn del Cazador. Sala cerrada al oeste. | `InitialZone` |
+| `Zone_HuntingGround` | Coto de caza central (14 x 10 tiles): 6 boids reutilizando `WorldBounds`. | `HuntingGround` |
+| `Zone_Safe_A` | Callejón sin salida noreste (5 x 5 tiles). Refugio del Cazador. | `SafeZone` |
+| `Zone_Safe_B` | Callejón sin salida suroeste (5 x 5 tiles). Refugio del Cazador. | `SafeZone` |
+| `Zone_Exit` | Meta. Sala cerrada al este; el Cazador escapa al completar las recolecciones. | `ExitZone` |
+| `Zone_NorthRoom` / `Zone_SouthRoom` | Salas de paso (14 x 4 tiles) con dos accesos al anillo y un bloque oscuro central. | `Room` |
 
 Reglas del escenario:
 
 - Las zonas se identifican por color de piso, `ZoneVolume` y etiqueta en el HUD.
-- Las zonas seguras son callejones sin salida: los lobos no pueden entrar.
-- El Coto está cerrado por paredes con dos entradas (norte y sur), de modo que
-  la navegación tenga que rodear obstáculos reales.
+- El Coto está cerrado por paredes y se abre solo a izquierda y derecha, sobre
+  el corredor principal (dos tiles de alto). Las salas norte y sur se conectan
+  al anillo por dos aberturas cada una; no tienen paso directo al Coto.
+- Las zonas seguras son callejones sin salida en el noreste y el suroeste,
+  fuera de las rutas de patrulla de los lobos.
 - Los boids quedan confinados al Coto mediante `WorldBounds` con `wrap=false`.
+- La grilla, la fusión greedy de rectángulos y los materiales se generan desde
+  `Parcial2SceneBuilder`; no hay piezas colocadas a mano.
 
 Generación reproducible: `Tools > Parcial 2 > Build Scene` reconstruye
 `Assets/Scenes/Parcial2.unity` desde `Parcial2SceneBuilder`.
@@ -183,6 +189,10 @@ Assets/Scripts/
 - [x] `Gather` descarta cadáveres inalcanzables y tiene un tiempo máximo de
       aproximación.
 - [x] Balance del Cazador a velocidad 5 (6.5 al huir) y playtest de regresión.
+- [x] Los boids quedan confinados al plano XZ: se descarta la componente
+      vertical del steering y de la velocidad en `BoidMotor`. Antes la deriva
+      vertical los alejaba cientos de unidades del Coto y el Cazador dejaba de
+      detectarlos.
 
 Nota de balance: se probó un barrido en espiral con puntos de búsqueda
 alrededor de la última posición conocida. La jauría quedaba acampando el Coto y
@@ -196,21 +206,27 @@ romper la huida.
 180 s simulados y registra estados, recolecciones, capturas, alertas y
 violaciones de zonas seguras.
 
-Última corrida (velocidad 5, alerta con giro en el lugar):
+Última corrida (escenario nuevo, velocidad 5, alerta con giro en el lugar):
 
+- Tiempo simulado: **179.7 s** (el Cazador llega a la Salida sobre el final).
 - Recolecciones: **3/3**.
 - Escape por la Salida: **sí**.
-- Capturas: **1** (el estado `Dead` queda cubierto).
+- Capturas: **0**.
 - Lobos dentro de zonas seguras: **0 muestras**.
-- Estados del Cazador visitados: `Search`, `Attack`, `Gather`, `Flee`, `Exit`,
-  `Dead`.
+- Estados del Cazador visitados: `Search`, `Attack`, `Gather`, `Exit`.
 - Estados de lobos visitados: `Patrol`, `Alert`, `Chase`, `Return`.
 - Alertas de jauría: **sí**.
 
-La corrida se repitió dos veces con el mismo resultado (3/3, escape y 1
-captura). El barrido en espiral de la Fase 6 se descartó porque la jauría
-acampaba el Coto: el Cazador no completaba recolecciones y acumulaba 7-8
-capturas.
+En esta corrida el Cazador no fue alcanzado, así que `Flee` y `Dead` no se
+ejercitaron; ambos quedan cubiertos por las corridas de regresión anteriores y
+por el checklist manual. Tras el escape, los lobos cortan la persecución
+(`Hunter.HasEscaped`) y vuelven a patrullar en lugar de amontonarse sobre la
+Salida. Una corrida previa, con la jauría sin avistar al Cazador, terminó igual
+en 3/3 y escape pero sin alertas: el sistema de alerta depende de que un lobo
+llegue a ver al Cazador.
+
+El barrido en espiral de la Fase 6 se descartó porque la jauría acampaba el
+Coto: el Cazador no completaba recolecciones y acumulaba 7-8 capturas.
 
 ## Criterios de aceptación
 

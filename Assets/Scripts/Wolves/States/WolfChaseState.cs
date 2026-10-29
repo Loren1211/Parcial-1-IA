@@ -27,7 +27,7 @@ public class WolfChaseState : WolfStateBase
     {
         HunterAgent hunter = Wolf.Hunter;
 
-        if (hunter == null || hunter.IsCaptured)
+        if (hunter == null || hunter.IsCaptured || hunter.HasEscaped)
         {
             _fsm.ChangeState(WolfAgent.States.Return);
             return;

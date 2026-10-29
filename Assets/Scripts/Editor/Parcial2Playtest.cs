@@ -25,12 +25,16 @@ public static class Parcial2Playtest
 
     private static HunterAgent _hunter;
     private static WolfAgent[] _wolves;
+    private static BoidAgent[] _boids;
     private static bool _entered;
     private static bool _finished;
     private static float _startRealtime;
     private static float _nextSample;
     private static int _safeZoneViolations;
     private static int _captures;
+    private static int _peakGathers;
+    private static int _totalGathered;
+    private static int _lastGathers;
     private static bool _sawAlert;
     private static HunterAgent.States _lastHunterState;
 
@@ -69,6 +73,9 @@ public static class Parcial2Playtest
         _finished = false;
         _safeZoneViolations = 0;
         _captures = 0;
+        _peakGathers = 0;
+        _totalGathered = 0;
+        _lastGathers = 0;
         _sawAlert = false;
         _nextSample = 0f;
         HunterStatesVisited.Clear();
@@ -100,9 +107,11 @@ public static class Parcial2Playtest
 
             _hunter = Object.FindFirstObjectByType<HunterAgent>();
             _wolves = Object.FindObjectsByType<WolfAgent>(FindObjectsSortMode.None);
+            _boids = Object.FindObjectsByType<BoidAgent>(FindObjectsSortMode.None);
 
             Debug.Log("[Playtest] Inicio: cazador=" + (_hunter != null) +
-                " lobos=" + _wolves.Length + " timeScale=" + TimeScale);
+                " lobos=" + _wolves.Length + " boids=" + _boids.Length +
+                " timeScale=" + TimeScale);
 
             return;
         }
@@ -110,6 +119,15 @@ public static class Parcial2Playtest
         if (_hunter != null)
         {
             HunterStatesVisited.Add(_hunter.FSM.CurrentStateID);
+
+            // Gathers vuelve a cero al morir; se guarda el pico y el total
+            // acumulado para que el reporte no pierda el progreso real.
+            if (_hunter.Gathers > _peakGathers) _peakGathers = _hunter.Gathers;
+
+            if (_hunter.Gathers > _lastGathers)
+                _totalGathered += _hunter.Gathers - _lastGathers;
+
+            _lastGathers = _hunter.Gathers;
 
             if (_hunter.FSM.CurrentStateID != _lastHunterState)
             {
@@ -146,7 +164,8 @@ public static class Parcial2Playtest
                 " | pos " + (_hunter != null ? _hunter.transform.position.ToString("F1") : "-") +
                 " | recolecciones " + (_hunter != null ? _hunter.Gathers : 0) +
                 " | nav " + DescribeNav() +
-                " | lobos " + DescribeWolves());
+                " | lobos " + DescribeWolves() +
+                " | boids " + DescribeBoids());
         }
 
         if (Time.realtimeSinceStartup - _startRealtime < MaxRealSeconds) return;
@@ -168,6 +187,9 @@ public static class Parcial2Playtest
         builder.AppendLine("  Capturas: " + _captures);
         builder.AppendLine("  Recolecciones: " + (_hunter != null ? _hunter.Gathers : 0) +
             "/" + (_hunter != null ? _hunter.RequiredGathers : 0));
+        builder.AppendLine("  Pico de recolecciones: " + _peakGathers +
+            " | total acumulado: " + _totalGathered);
+        builder.AppendLine("  Boids: " + DescribeBoids());
         builder.AppendLine("  Escape: " + (_hunter != null && _hunter.HasEscaped));
         builder.AppendLine("  Estado final: " + (_hunter != null ? _hunter.FSM.CurrentStateID.ToString() : "-"));
 
@@ -211,6 +233,32 @@ public static class Parcial2Playtest
         }
 
         return builder.ToString();
+    }
+
+    private static string DescribeBoids()
+    {
+        if (_boids == null) return "-";
+
+        int active = 0;
+        int dead = 0;
+        int collected = 0;
+        StringBuilder builder = new();
+
+        for (int i = 0; i < _boids.Length; i++)
+        {
+            BoidAgent boid = _boids[i];
+            if (boid == null) continue;
+
+            if (boid.IsCollected) { collected++; continue; }
+            if (boid.IsDead) { dead++; continue; }
+
+            active++;
+            if (builder.Length > 0) builder.Append(", ");
+            builder.Append(boid.transform.position.ToString("F1"));
+        }
+
+        return "vivos=" + active + " muertos=" + dead + " recogidos=" + collected +
+            (builder.Length > 0 ? " | " + builder.ToString() : string.Empty);
     }
 
     private static string Join<T>(HashSet<T> set)

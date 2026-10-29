@@ -92,7 +92,7 @@ public class BoidHealth
         if (_collider != null) _collider.enabled = true;
 
         Vector3 position = WorldBounds.Instance != null
-            ? WorldBounds.Instance.RandomPosition()
+            ? WorldBounds.Instance.RandomPosition(1f, _transform.position.y)
             : Vector3.zero;
 
         _transform.position = position;

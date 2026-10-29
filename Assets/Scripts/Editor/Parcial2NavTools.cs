@@ -11,11 +11,11 @@ public static class Parcial2NavTools
 {
     private const string ScenePath = "Assets/Scenes/Parcial2.unity";
 
-    private static readonly Vector3 InitialSpawn = new(-18.5f, 1f, 0f);
-    private static readonly Vector3 ExitPoint = new(18.5f, 1f, 0f);
+    private static readonly Vector3 InitialSpawn = new(-30.75f, 1f, 0f);
+    private static readonly Vector3 ExitPoint = new(30.75f, 1f, 0f);
     private static readonly Vector3 HuntingCenter = new(0f, 1f, 0f);
-    private static readonly Vector3 SafeACenter = new(10f, 1f, 13f);
-    private static readonly Vector3 SafeBCenter = new(-10f, 1f, -13f);
+    private static readonly Vector3 SafeACenter = new(15.75f, 1f, 9.75f);
+    private static readonly Vector3 SafeBCenter = new(-15.75f, 1f, -8.25f);
 
     [MenuItem("Tools/Parcial 2/Bake Nav Graph")]
     public static void BakeNavGraph()

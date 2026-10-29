@@ -83,6 +83,7 @@ Abrir `Assets/Scenes/SampleScene.unity`, presionar Play y verificar:
 Abrir `Assets/Scenes/Parcial2.unity` y verificar:
 
 - [ ] Se ven las zonas Inicial, Coto, dos zonas seguras y Salida con colores distintos.
+- [ ] El mapa coincide con la referencia: anillo perimetral, Coto abierto a izquierda y derecha, salas norte y sur con bloque oscuro central, zonas seguras al noreste y suroeste.
 - [ ] Hay 6 boids dentro del Coto y 4 lobos fuera.
 - [ ] El HUD muestra el estado del Cazador, las recolecciones, las capturas y los nodos del camino A*.
 - [ ] Con F3 se ven los radios de los boids, el FOV de los lobos y el camino A* activo.

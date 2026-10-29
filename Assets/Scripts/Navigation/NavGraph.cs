@@ -13,8 +13,8 @@ public class NavGraph : MonoBehaviour
 
     [Header("Area")]
     [SerializeField] private Vector3 _areaCenter = Vector3.zero;
-    [SerializeField] private Vector2 _areaSize = new(44f, 32f);
-    [SerializeField] private Vector3 _bakeSeed = new(-18.5f, 1f, 0f);
+    [SerializeField] private Vector2 _areaSize = new(72f, 45f);
+    [SerializeField] private Vector3 _bakeSeed = new(-30.75f, 1f, 0f);
 
     [Header("Bake")]
     [SerializeField] private float _spacing = 1f;

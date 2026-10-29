@@ -25,10 +25,18 @@ public class BoidMotor
     {
         if (deltaTime <= 0f) return;
 
+        // El plano de juego es XZ: cualquier componente vertical del steering
+        // (por ejemplo al buscar un cebo a distinta altura) se descarta. Sin
+        // esto la velocidad vertical se acumulaba y los boids terminaban
+        // cientos de unidades arriba o abajo, fuera del alcance del Cazador.
+        steering.y = 0f;
+
         _velocity += Vector3.ClampMagnitude(steering, _maxForce) * deltaTime;
+        _velocity.y = 0f;
         _velocity = Vector3.ClampMagnitude(_velocity, _maxSpeed);
 
         Vector3 nextPosition = _transform.position + _velocity * deltaTime;
+        nextPosition.y = _transform.position.y;
 
         if (WorldBounds.Instance != null)
             nextPosition = WorldBounds.Instance.CalculateBoundPosition(nextPosition);
@@ -41,6 +49,7 @@ public class BoidMotor
 
     public void SetVelocity(Vector3 velocity)
     {
+        velocity.y = 0f;
         _velocity = Vector3.ClampMagnitude(velocity, _maxSpeed);
     }
 

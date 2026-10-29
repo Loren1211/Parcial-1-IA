@@ -53,8 +53,8 @@ Tabla de trazabilidad entre cada requisito, la clase que lo implementa y la evid
 |---|---|---|
 | Mapa con zonas | `Parcial2SceneBuilder` + `ZoneVolume` | Pisos de color, leyenda del HUD y gizmos |
 | Zona Inicial | `Zone_Initial` con `ZoneKind.Initial` | Piso y etiqueta; spawn y respawn del Cazador |
-| Coto de caza | `Zone_HuntingGround` + `WorldBounds` | 6 boids confinados en el bloque central |
-| Al menos 2 zonas seguras | `Zone_Safe_A` y `Zone_Safe_B` en callejones sin salida | Pisos violetas y etiqueta `ZONA SEGURA` |
+| Coto de caza | `Zone_HuntingGround` + `WorldBounds` | 6 boids confinados en el Coto central (14 x 10 tiles), abierto a izquierda y derecha |
+| Al menos 2 zonas seguras | `Zone_Safe_A` y `Zone_Safe_B` en callejones sin salida al noreste y suroeste | Pisos violetas y etiqueta `ZONA SEGURA` |
 | Salida | `Zone_Exit` con `ZoneKind.Exit` | Piso y meta; el Cazador escapa al entrar |
 | Identificación visual | Materiales URP por zona + leyenda | Colores distintos y log de zona elegida |
 
@@ -65,7 +65,7 @@ Tabla de trazabilidad entre cada requisito, la clase que lo implementa y la evid
 | Mínimo 4 lobos | 4 instancias de `WolfAgent` | HUD y etiquetas 3D |
 | Patrulla por waypoints | `WolfPatrolState` + `PatrolRoute` | Gizmo de ruta y estado `Patrol` |
 | Más lentos que el Cazador | `_patrolSpeed` 3.2, `_alertSpeed` 4, `_chaseSpeed` 4.2 vs. 5 (6.5 al huir) | El Cazador puede escapar |
-| Percepción con FOV y LOS | `WolfSensor` con `_viewRadius`, `_fovAngle`, `_obstacleMask` | Gizmo del cono y cambio a `Chase` |
+| Percepción con FOV y LOS | `WolfSensor` con `_viewRadius` 10, `_fovAngle` 120, `_obstacleMask` | Gizmo del cono y cambio a `Chase` |
 | Aullido/alerta compartida | `WolfAlertBus` con cooldown de 2 s | Log `ALERTA` y HUD |
 | A* a la última posición conocida | `WolfAlertState` + `NavAgent` | Gizmo del camino y punto rojo de última posición |
 | Persecución y captura | `WolfChaseState` + `CanCapture` | Estado `Chase`, texto `CAPTURADO` |

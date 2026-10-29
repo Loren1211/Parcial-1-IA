@@ -51,7 +51,7 @@ public class WolfAgent : MonoBehaviour
 
     public bool SeesHunter => !IgnoresHunter
         && Sensor != null && Sensor.SeesTarget
-        && Hunter != null && !Hunter.IsCaptured
+        && Hunter != null && !Hunter.IsCaptured && !Hunter.HasEscaped
         && !ZoneVolume.IsInsideWolfExcluded(Hunter.transform.position);
     public bool IgnoresHunter => Time.time < _ignoreHunterUntil;
     public bool HasLastKnownPosition { get; private set; }
@@ -210,7 +210,7 @@ public class WolfAgent : MonoBehaviour
 
     public bool CanCapture(HunterAgent hunter)
     {
-        if (hunter == null || hunter.IsCaptured) return false;
+        if (hunter == null || hunter.IsCaptured || hunter.HasEscaped) return false;
         if (IgnoresHunter) return false;
         if (hunter.IsSpawnProtected) return false;
         if (ZoneVolume.IsInsideWolfExcluded(hunter.transform.position)) return false;

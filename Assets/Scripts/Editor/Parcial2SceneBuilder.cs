@@ -8,8 +8,13 @@ using UnityEngine.SceneManagement;
 /// <summary>
 /// Genera la escena del Parcial 2 (Variante A: anillo) con primitivas.
 /// Menu: Tools > Parcial 2 > Build Scene.
-/// El escenario queda guardado como Assets/Scenes/Parcial2.unity para que
-/// el resto del parcial trabaje sobre una base reproducible.
+///
+/// El mapa se arma sobre una grilla de tiles de 1.5 unidades y reproduce la
+/// referencia del enunciado: un anillo perimetral, un Coto central con salidas
+/// a izquierda y derecha, salas norte y sur con un bloque oscuro central y
+/// zonas seguras en los callejones sin salida del noreste y del suroeste.
+/// El escenario queda guardado como Assets/Scenes/Parcial2.unity para que el
+/// resto del parcial trabaje sobre una base reproducible.
 /// </summary>
 public static class Parcial2SceneBuilder
 {
@@ -18,8 +23,21 @@ public static class Parcial2SceneBuilder
     private const string BoidPrefabPath = "Assets/Prefabs/Boid.prefab";
     private const string InterestPrefabPath = "Assets/Prefabs/InterestObject.prefab";
 
-    private const float WallHeight = 3f;
-    private const float WallThickness = 0.5f;
+    // Grilla del mapa: 32 x 28 tiles interiores (columnas 0..31, filas 0..27).
+    // El marco exterior ocupa la columna -1 y 32 y las filas -1 y 28.
+    private const float Tile = 1.5f;
+    private const float WallHeight = 2.5f;
+    private const float BarDepth = 0.75f;
+
+    private const int GridMinCol = -8;
+    private const int GridMaxCol = 39;
+    private const int GridMinRow = -1;
+    private const int GridMaxRow = 28;
+
+    private static readonly Vector3 InitialCenter = new(-30.75f, 0f, 0f);
+    private static readonly Vector3 ExitCenter = new(30.75f, 0f, 0f);
+    private static readonly Vector3 SafeACenter = new(15.75f, 0f, 9.75f);
+    private static readonly Vector3 SafeBCenter = new(-15.75f, 0f, -8.25f);
 
     [MenuItem("Tools/Parcial 2/Build Scene")]
     public static void BuildScene()
@@ -29,13 +47,18 @@ public static class Parcial2SceneBuilder
 
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-        Material floorNeutral = CreateMaterial("Floor_Neutral", new Color(0.68f, 0.69f, 0.72f));
-        Material floorInitial = CreateMaterial("Floor_Initial", new Color(0.22f, 0.62f, 0.35f));
-        Material floorHunting = CreateMaterial("Floor_HuntingGround", new Color(0.85f, 0.55f, 0.16f));
-        Material floorSafe = CreateMaterial("Floor_SafeZone", new Color(0.55f, 0.30f, 0.70f));
-        Material floorExit = CreateMaterial("Floor_Exit", new Color(0.20f, 0.45f, 0.82f));
-        Material floorBorder = CreateMaterial("Floor_Border", new Color(0.10f, 0.11f, 0.14f));
-        Material wallMaterial = CreateMaterial("Wall", new Color(0.17f, 0.20f, 0.26f));
+        // Paleta tomada del mapa de ejemplo: pisos pastel y muros gris azulados.
+        Material floorNeutral = CreateMaterial("Floor_Neutral", new Color(0.886f, 0.867f, 0.820f));
+        Material floorInitial = CreateMaterial("Floor_Initial", new Color(0.722f, 0.816f, 0.725f));
+        Material floorHunting = CreateMaterial("Floor_HuntingGround", new Color(0.902f, 0.816f, 0.659f));
+        Material floorSafe = CreateMaterial("Floor_SafeZone", new Color(0.808f, 0.733f, 0.808f));
+        Material floorExit = CreateMaterial("Floor_Exit", new Color(0.690f, 0.769f, 0.816f));
+        Material borderInitial = CreateMaterial("Border_Initial", new Color(0.420f, 0.600f, 0.450f));
+        Material borderHunting = CreateMaterial("Border_HuntingGround", new Color(0.960f, 0.647f, 0.141f));
+        Material borderSafe = CreateMaterial("Border_SafeZone", new Color(0.557f, 0.306f, 0.776f));
+        Material borderExit = CreateMaterial("Border_Exit", new Color(0.360f, 0.520f, 0.680f));
+        Material wallMaterial = CreateMaterial("Wall", new Color(0.290f, 0.318f, 0.361f));
+        Material boundaryMaterial = CreateMaterial("Boundary", new Color(0.090f, 0.100f, 0.130f));
         Material hunterMaterial = CreateMaterial("Hunter", new Color(0.85f, 0.15f, 0.15f));
         Material wolfMaterial = CreateMaterial("Wolf", new Color(0.55f, 0.55f, 0.60f));
 
@@ -43,8 +66,18 @@ public static class Parcial2SceneBuilder
         GameObject world = CreateChild("World", environment.transform);
         GameObject zones = CreateChild("Zones", environment.transform);
 
-        BuildFloors(world.transform, floorNeutral, floorBorder, floorInitial, floorHunting, floorSafe, floorExit);
-        BuildWalls(world.transform, wallMaterial);
+        BuildFloors(
+            world.transform,
+            floorNeutral,
+            floorInitial,
+            floorHunting,
+            floorSafe,
+            floorExit,
+            borderInitial,
+            borderHunting,
+            borderSafe,
+            borderExit);
+        BuildWalls(world.transform, wallMaterial, boundaryMaterial);
         BuildZones(zones.transform);
 
         GameObject agents = new("--- AGENTS ---");
@@ -83,113 +116,258 @@ public static class Parcial2SceneBuilder
         LogValidation();
     }
 
+    // ---------------------------------------------------------------------
+    // Coordenadas de la grilla
+    // ---------------------------------------------------------------------
+
+    private static float EdgeX(int column) => (column - 16f) * Tile;
+
+    private static float EdgeZ(int row) => (14f - row) * Tile;
+
+    private static Vector3 TileCenter(int column, int row, float y = 0f) =>
+        new((column + 0.5f - 16f) * Tile, y, (13.5f - row) * Tile);
+
+    // ---------------------------------------------------------------------
+    // Pisos
+    // ---------------------------------------------------------------------
+
     private static void BuildFloors(
         Transform parent,
         Material neutral,
-        Material border,
         Material initial,
         Material hunting,
         Material safe,
-        Material exit)
+        Material exit,
+        Material borderInitial,
+        Material borderHunting,
+        Material borderSafe,
+        Material borderExit)
     {
-        CreateFloor(parent, "Floor_Base", new Vector3(0f, -0.05f, 0f), new Vector3(45f, 0.1f, 33f), neutral);
+        // Piso del edificio principal (anillo + salas + Coto).
+        CreateFloor(parent, "Floor_Main", new Vector3(0f, -0.05f, 0f), new Vector3(48f, 0.1f, 42f), neutral);
 
-        CreateZoneFloor(parent, "Floor_Initial", new Vector3(-18.5f, 0f, 0f), new Vector2(4.8f, 5.8f), initial, border);
-        CreateZoneFloor(parent, "Floor_Exit", new Vector3(18.5f, 0f, 0f), new Vector2(4.8f, 5.8f), exit, border);
-        CreateZoneFloor(parent, "Floor_HuntingGround", new Vector3(0f, 0f, 0f), new Vector2(11.6f, 7.6f), hunting, border);
-        CreateZoneFloor(parent, "Floor_SafeZone_A", new Vector3(10f, 0f, 13f), new Vector2(3.6f, 3.6f), safe, border);
-        CreateZoneFloor(parent, "Floor_SafeZone_B", new Vector3(-10f, 0f, -13f), new Vector2(3.6f, 3.6f), safe, border);
-        CreateZoneFloor(parent, "Floor_NorthRoom", new Vector3(0f, 0f, 11.25f), new Vector2(7.6f, 4.1f), neutral, border);
-        CreateZoneFloor(parent, "Floor_SouthRoom", new Vector3(0f, 0f, -11.25f), new Vector2(7.6f, 4.1f), neutral, border);
+        // Pisos de las salas de Inicio y Salida, y de sus corredores.
+        CreateFloor(parent, "Floor_InitialRoom", new Vector3(InitialCenter.x, -0.05f, 0f), new Vector3(7.5f, 0.1f, 9f), neutral);
+        CreateFloor(parent, "Floor_InitialCorridor", new Vector3(-25.5f, -0.05f, 0f), new Vector3(3f, 0.1f, 3f), neutral);
+        CreateFloor(parent, "Floor_ExitRoom", new Vector3(ExitCenter.x, -0.05f, 0f), new Vector3(7.5f, 0.1f, 9f), neutral);
+        CreateFloor(parent, "Floor_ExitCorridor", new Vector3(25.5f, -0.05f, 0f), new Vector3(3f, 0.1f, 3f), neutral);
+
+        // Pisos de color de las zonas logicas.
+        CreateZoneFloor(parent, "Floor_Initial", InitialCenter, new Vector2(7.5f, 9f), initial, borderInitial);
+        CreateZoneFloor(parent, "Floor_Exit", ExitCenter, new Vector2(7.5f, 9f), exit, borderExit);
+        CreateZoneFloor(parent, "Floor_HuntingGround", Vector3.zero, new Vector2(21f, 15f), hunting, borderHunting);
+        CreateZoneFloor(parent, "Floor_SafeZone_A", SafeACenter, new Vector2(7.5f, 7.5f), safe, borderSafe);
+        CreateZoneFloor(parent, "Floor_SafeZone_B", SafeBCenter, new Vector2(7.5f, 7.5f), safe, borderSafe);
     }
 
-    private static void BuildWalls(Transform parent, Material material)
+    // ---------------------------------------------------------------------
+    // Paredes
+    // ---------------------------------------------------------------------
+
+    private static void BuildWalls(Transform parent, Material material, Material boundaryMaterial)
     {
-        // Borde exterior del anillo. Los huecos conectan Inicio, Salida,
-        // sala norte, sala sur y los pasillos de las zonas seguras.
-        Wall(parent, "OuterNorth_A", new Vector3(-7.95f, 1.5f, 9.4f), new Vector3(12.9f, WallHeight, WallThickness), material);
-        Wall(parent, "OuterNorth_B", new Vector3(5.125f, 1.5f, 9.4f), new Vector3(7.25f, WallHeight, WallThickness), material);
-        Wall(parent, "OuterNorth_C", new Vector3(12.825f, 1.5f, 9.4f), new Vector3(3.15f, WallHeight, WallThickness), material);
+        bool[,] wall = BuildWallGrid();
 
-        Wall(parent, "OuterSouth_A", new Vector3(-12.825f, 1.5f, -9.4f), new Vector3(3.15f, WallHeight, WallThickness), material);
-        Wall(parent, "OuterSouth_B", new Vector3(-5.125f, 1.5f, -9.4f), new Vector3(7.25f, WallHeight, WallThickness), material);
-        Wall(parent, "OuterSouth_C", new Vector3(7.95f, 1.5f, -9.4f), new Vector3(12.9f, WallHeight, WallThickness), material);
+        int columns = GridMaxCol - GridMinCol + 1;
+        int rows = GridMaxRow - GridMinRow + 1;
+        bool[,] used = new bool[columns, rows];
+        int index = 1;
 
-        Wall(parent, "OuterWest_North", new Vector3(-14.4f, 1.5f, 5.45f), new Vector3(WallThickness, WallHeight, 7.9f), material);
-        Wall(parent, "OuterWest_South", new Vector3(-14.4f, 1.5f, -5.45f), new Vector3(WallThickness, WallHeight, 7.9f), material);
+        // Fusion greedy de celdas contiguas en rectangulos para no crear un
+        // cubo por tile. Las celdas nunca se solapan entre rectangulos.
+        for (int row = 0; row < rows; row++)
+        {
+            for (int column = 0; column < columns; column++)
+            {
+                if (!wall[column, row] || used[column, row]) continue;
 
-        Wall(parent, "OuterEast_North", new Vector3(14.4f, 1.5f, 5.45f), new Vector3(WallThickness, WallHeight, 7.9f), material);
-        Wall(parent, "OuterEast_South", new Vector3(14.4f, 1.5f, -5.45f), new Vector3(WallThickness, WallHeight, 7.9f), material);
+                int width = 0;
+                while (column + width < columns
+                    && wall[column + width, row]
+                    && !used[column + width, row])
+                {
+                    width++;
+                }
 
-        // Coto de caza: dos entradas, una al norte y otra al sur.
-        Wall(parent, "CotoNorth_West", new Vector3(-3.875f, 1.5f, 4.25f), new Vector3(4.75f, WallHeight, WallThickness), material);
-        Wall(parent, "CotoNorth_East", new Vector3(3.875f, 1.5f, 4.25f), new Vector3(4.75f, WallHeight, WallThickness), material);
-        Wall(parent, "CotoSouth_West", new Vector3(-3.875f, 1.5f, -4.25f), new Vector3(4.75f, WallHeight, WallThickness), material);
-        Wall(parent, "CotoSouth_East", new Vector3(3.875f, 1.5f, -4.25f), new Vector3(4.75f, WallHeight, WallThickness), material);
-        Wall(parent, "CotoWest", new Vector3(-6.25f, 1.5f, 0f), new Vector3(WallThickness, WallHeight, 8.5f), material);
-        Wall(parent, "CotoEast", new Vector3(6.25f, 1.5f, 0f), new Vector3(WallThickness, WallHeight, 8.5f), material);
+                int height = 1;
+                bool grows = true;
 
-        // Sala norte.
-        Wall(parent, "NorthRoom_West", new Vector3(-4.25f, 1.5f, 11.575f), new Vector3(WallThickness, WallHeight, 4.35f), material);
-        Wall(parent, "NorthRoom_East", new Vector3(4.25f, 1.5f, 11.575f), new Vector3(WallThickness, WallHeight, 4.35f), material);
-        Wall(parent, "NorthRoom_North", new Vector3(0f, 1.5f, 13.75f), new Vector3(8.5f, WallHeight, WallThickness), material);
+                while (grows && row + height < rows)
+                {
+                    for (int offset = 0; offset < width; offset++)
+                    {
+                        if (!wall[column + offset, row + height]
+                            || used[column + offset, row + height])
+                        {
+                            grows = false;
+                            break;
+                        }
+                    }
 
-        // Sala sur.
-        Wall(parent, "SouthRoom_West", new Vector3(-4.25f, 1.5f, -11.575f), new Vector3(WallThickness, WallHeight, 4.35f), material);
-        Wall(parent, "SouthRoom_East", new Vector3(4.25f, 1.5f, -11.575f), new Vector3(WallThickness, WallHeight, 4.35f), material);
-        Wall(parent, "SouthRoom_South", new Vector3(0f, 1.5f, -13.75f), new Vector3(8.5f, WallHeight, WallThickness), material);
+                    if (grows) height++;
+                }
 
-        // Zona inicial.
-        Wall(parent, "Initial_West", new Vector3(-21.25f, 1.5f, 0f), new Vector3(WallThickness, WallHeight, 6.5f), material);
-        Wall(parent, "Initial_North", new Vector3(-18.625f, 1.5f, 3.25f), new Vector3(5.25f, WallHeight, WallThickness), material);
-        Wall(parent, "Initial_South", new Vector3(-18.625f, 1.5f, -3.25f), new Vector3(5.25f, WallHeight, WallThickness), material);
-        Wall(parent, "Initial_East_North", new Vector3(-16f, 1.5f, 2.375f), new Vector3(WallThickness, WallHeight, 1.75f), material);
-        Wall(parent, "Initial_East_South", new Vector3(-16f, 1.5f, -2.375f), new Vector3(WallThickness, WallHeight, 1.75f), material);
-        Wall(parent, "Initial_Corridor_North", new Vector3(-15.2f, 1.5f, 1.5f), new Vector3(1.6f, WallHeight, WallThickness), material);
-        Wall(parent, "Initial_Corridor_South", new Vector3(-15.2f, 1.5f, -1.5f), new Vector3(1.6f, WallHeight, WallThickness), material);
+                for (int r = 0; r < height; r++)
+                {
+                    for (int c = 0; c < width; c++)
+                        used[column + c, row + r] = true;
+                }
 
-        // Salida.
-        Wall(parent, "Exit_East", new Vector3(21.25f, 1.5f, 0f), new Vector3(WallThickness, WallHeight, 6.5f), material);
-        Wall(parent, "Exit_North", new Vector3(18.625f, 1.5f, 3.25f), new Vector3(5.25f, WallHeight, WallThickness), material);
-        Wall(parent, "Exit_South", new Vector3(18.625f, 1.5f, -3.25f), new Vector3(5.25f, WallHeight, WallThickness), material);
-        Wall(parent, "Exit_West_North", new Vector3(16f, 1.5f, 2.375f), new Vector3(WallThickness, WallHeight, 1.75f), material);
-        Wall(parent, "Exit_West_South", new Vector3(16f, 1.5f, -2.375f), new Vector3(WallThickness, WallHeight, 1.75f), material);
-        Wall(parent, "Exit_Corridor_North", new Vector3(15.2f, 1.5f, 1.5f), new Vector3(1.6f, WallHeight, WallThickness), material);
-        Wall(parent, "Exit_Corridor_South", new Vector3(15.2f, 1.5f, -1.5f), new Vector3(1.6f, WallHeight, WallThickness), material);
+                int col0 = column + GridMinCol;
+                int col1 = column + width - 1 + GridMinCol;
+                int row0 = row + GridMinRow;
+                int row1 = row + height - 1 + GridMinRow;
 
-        // Zona segura A: callejon sin salida al noreste.
-        Wall(parent, "SafeA_West", new Vector3(8f, 1.5f, 13f), new Vector3(WallThickness, WallHeight, 4f), material);
-        Wall(parent, "SafeA_East", new Vector3(12f, 1.5f, 13f), new Vector3(WallThickness, WallHeight, 4f), material);
-        Wall(parent, "SafeA_North", new Vector3(10f, 1.5f, 15f), new Vector3(4f, WallHeight, WallThickness), material);
-        Wall(parent, "SafeA_South_West", new Vector3(8.375f, 1.5f, 11f), new Vector3(0.75f, WallHeight, WallThickness), material);
-        Wall(parent, "SafeA_South_East", new Vector3(11.625f, 1.5f, 11f), new Vector3(0.75f, WallHeight, WallThickness), material);
-        Wall(parent, "SafeA_Corridor_West", new Vector3(8.75f, 1.5f, 10.2f), new Vector3(WallThickness, WallHeight, 1.6f), material);
-        Wall(parent, "SafeA_Corridor_East", new Vector3(11.25f, 1.5f, 10.2f), new Vector3(WallThickness, WallHeight, 1.6f), material);
+                // El marco exterior se pinta como el fondo para que el piso
+                // termine contra el borde sin una banda gris visible.
+                bool boundary = col1 < 0 || col0 > 31 || row1 < 0 || row0 > 27;
+                Material blockMaterial = boundary ? boundaryMaterial : material;
 
-        // Zona segura B: callejon sin salida al suroeste.
-        Wall(parent, "SafeB_West", new Vector3(-12f, 1.5f, -13f), new Vector3(WallThickness, WallHeight, 4f), material);
-        Wall(parent, "SafeB_East", new Vector3(-8f, 1.5f, -13f), new Vector3(WallThickness, WallHeight, 4f), material);
-        Wall(parent, "SafeB_South", new Vector3(-10f, 1.5f, -15f), new Vector3(4f, WallHeight, WallThickness), material);
-        Wall(parent, "SafeB_North_West", new Vector3(-11.625f, 1.5f, -11f), new Vector3(0.75f, WallHeight, WallThickness), material);
-        Wall(parent, "SafeB_North_East", new Vector3(-8.375f, 1.5f, -11f), new Vector3(0.75f, WallHeight, WallThickness), material);
-        Wall(parent, "SafeB_Corridor_West", new Vector3(-11.25f, 1.5f, -10.2f), new Vector3(WallThickness, WallHeight, 1.6f), material);
-        Wall(parent, "SafeB_Corridor_East", new Vector3(-8.75f, 1.5f, -10.2f), new Vector3(WallThickness, WallHeight, 1.6f), material);
+                CreateWallBlock(
+                    parent,
+                    "Wall_" + index.ToString("00"),
+                    col0,
+                    col1,
+                    row0,
+                    row1,
+                    blockMaterial);
+
+                index++;
+            }
+        }
+
+        // Bloque oscuro que cuelga del techo de cada sala (medio tile).
+        CreateWallBlock(parent, "NorthRoom_Bar", 13, 18, 3, 3, material, BarDepth, true);
+        CreateWallBlock(parent, "SouthRoom_Bar", 13, 18, 24, 24, material, BarDepth, false);
     }
+
+    /// <summary>
+    /// Grilla logica de paredes. Se parte de la masa interior y se excavan los
+    /// espacios caminables: salas, Coto, corredores y callejones seguros.
+    /// </summary>
+    private static bool[,] BuildWallGrid()
+    {
+        int columns = GridMaxCol - GridMinCol + 1;
+        int rows = GridMaxRow - GridMinRow + 1;
+        bool[,] wall = new bool[columns, rows];
+
+        void SetRect(int col0, int col1, int row0, int row1, bool value)
+        {
+            for (int column = col0; column <= col1; column++)
+            {
+                for (int row = row0; row <= row1; row++)
+                    wall[column - GridMinCol, row - GridMinRow] = value;
+            }
+        }
+
+        // Masa interior del anillo.
+        SetRect(2, 29, 2, 25, true);
+
+        // Sala norte: 14 x 4 tiles, con dos accesos al anillo.
+        SetRect(9, 22, 3, 6, false);
+        SetRect(11, 12, 2, 2, false);
+        SetRect(19, 20, 2, 2, false);
+
+        // Zona segura noreste y su callejon sin salida.
+        SetRect(24, 28, 5, 9, false);
+        SetRect(25, 26, 10, 12, false);
+
+        // Coto central: 14 x 10 tiles, abierto a izquierda y derecha.
+        SetRect(9, 22, 9, 18, false);
+        SetRect(8, 8, 13, 14, false);
+        SetRect(23, 23, 13, 14, false);
+        SetRect(2, 8, 13, 14, false);
+        SetRect(23, 29, 13, 14, false);
+
+        // Zona segura suroeste y su callejon sin salida.
+        SetRect(5, 6, 15, 16, false);
+        SetRect(3, 7, 17, 21, false);
+
+        // Sala sur: 14 x 4 tiles, con dos accesos al anillo.
+        SetRect(9, 22, 21, 24, false);
+        SetRect(11, 12, 25, 25, false);
+        SetRect(19, 20, 25, 25, false);
+
+        // Marco exterior con las dos aberturas del corredor principal.
+        SetRect(-1, 32, -1, -1, true);
+        SetRect(-1, 32, 28, 28, true);
+        SetRect(-1, -1, -1, 28, true);
+        SetRect(32, 32, -1, 28, true);
+        SetRect(-1, -1, 13, 14, false);
+        SetRect(32, 32, 13, 14, false);
+
+        // Sala de Inicio (oeste), con puerta al corredor.
+        SetRect(-8, -2, 10, 10, true);
+        SetRect(-8, -2, 17, 17, true);
+        SetRect(-8, -8, 10, 17, true);
+        SetRect(-2, -2, 10, 12, true);
+        SetRect(-2, -2, 15, 17, true);
+
+        // Sala de Salida (este), con puerta al corredor.
+        SetRect(33, 39, 10, 10, true);
+        SetRect(33, 39, 17, 17, true);
+        SetRect(39, 39, 10, 17, true);
+        SetRect(33, 33, 10, 12, true);
+        SetRect(33, 33, 15, 17, true);
+
+        return wall;
+    }
+
+    private static void CreateWallBlock(
+        Transform parent,
+        string name,
+        int col0,
+        int col1,
+        int row0,
+        int row1,
+        Material material,
+        float depthOverride = 0f,
+        bool alignTop = false)
+    {
+        float width = (col1 - col0 + 1) * Tile;
+        float depth = depthOverride > 0f ? depthOverride : (row1 - row0 + 1) * Tile;
+        float centerX = (EdgeX(col0) + EdgeX(col1 + 1)) * 0.5f;
+
+        float centerZ;
+
+        if (depthOverride > 0f)
+        {
+            centerZ = alignTop
+                ? EdgeZ(row0) - depth * 0.5f
+                : EdgeZ(row1 + 1) + depth * 0.5f;
+        }
+        else
+        {
+            centerZ = (EdgeZ(row0) + EdgeZ(row1 + 1)) * 0.5f;
+        }
+
+        Wall(
+            parent,
+            name,
+            new Vector3(centerX, WallHeight * 0.5f, centerZ),
+            new Vector3(width, WallHeight, depth),
+            material);
+    }
+
+    // ---------------------------------------------------------------------
+    // Zonas
+    // ---------------------------------------------------------------------
 
     private static void BuildZones(Transform parent)
-    {        Transform initialSpawn = CreateMarker(parent, "Initial_Spawn", new Vector3(-18.5f, 0f, 0f));
-        Transform exitPoint = CreateMarker(parent, "Exit_Point", new Vector3(18.5f, 0f, 0f));
-        Transform huntingEntry = CreateMarker(parent, "HuntingGround_Entry", new Vector3(0f, 0f, 5.5f));
-        Transform safeAEntry = CreateMarker(parent, "SafeZone_A_Entry", new Vector3(10f, 0f, 10.5f));
-        Transform safeBEntry = CreateMarker(parent, "SafeZone_B_Entry", new Vector3(-10f, 0f, -10.5f));
+    {
+        Transform initialSpawn = CreateMarker(parent, "Initial_Spawn", InitialCenter);
+        Transform exitPoint = CreateMarker(parent, "Exit_Point", ExitCenter);
+        Transform huntingEntry = CreateMarker(parent, "HuntingGround_Entry", new Vector3(-10.5f, 0f, 0f));
+        Transform safeAEntry = CreateMarker(parent, "SafeZone_A_Entry", new Vector3(SafeACenter.x, 0f, 6f));
+        Transform safeBEntry = CreateMarker(parent, "SafeZone_B_Entry", new Vector3(SafeBCenter.x, 0f, -4.5f));
 
         CreateZone(
             parent,
             "Zone_Initial",
             ZoneKind.Initial,
-            new Vector3(-18.5f, 1.5f, 0f),
-            new Vector3(5f, 3f, 6f),
-            new Color(0.22f, 0.62f, 0.35f),
+            new Vector3(InitialCenter.x, 1.5f, 0f),
+            new Vector3(7.5f, 3f, 9f),
+            new Color(0.45f, 0.72f, 0.50f),
             GameLayers.Index(GameLayers.InitialZone),
             initialSpawn);
 
@@ -198,8 +376,8 @@ public static class Parcial2SceneBuilder
             "Zone_HuntingGround",
             ZoneKind.HuntingGround,
             new Vector3(0f, 1.5f, 0f),
-            new Vector3(11.8f, 3f, 7.8f),
-            new Color(0.85f, 0.55f, 0.16f),
+            new Vector3(21f, 3f, 15f),
+            new Color(0.88f, 0.68f, 0.30f),
             GameLayers.Index(GameLayers.HuntingGround),
             huntingEntry);
 
@@ -207,9 +385,9 @@ public static class Parcial2SceneBuilder
             parent,
             "Zone_Safe_A",
             ZoneKind.Safe,
-            new Vector3(10f, 1.5f, 13f),
-            new Vector3(3.8f, 3f, 3.8f),
-            new Color(0.55f, 0.30f, 0.70f),
+            new Vector3(SafeACenter.x, 1.5f, SafeACenter.z),
+            new Vector3(7.5f, 3f, 7.5f),
+            new Color(0.72f, 0.55f, 0.85f),
             GameLayers.Index(GameLayers.SafeZone),
             safeAEntry);
 
@@ -217,9 +395,9 @@ public static class Parcial2SceneBuilder
             parent,
             "Zone_Safe_B",
             ZoneKind.Safe,
-            new Vector3(-10f, 1.5f, -13f),
-            new Vector3(3.8f, 3f, 3.8f),
-            new Color(0.55f, 0.30f, 0.70f),
+            new Vector3(SafeBCenter.x, 1.5f, SafeBCenter.z),
+            new Vector3(7.5f, 3f, 7.5f),
+            new Color(0.72f, 0.55f, 0.85f),
             GameLayers.Index(GameLayers.SafeZone),
             safeBEntry);
 
@@ -227,9 +405,9 @@ public static class Parcial2SceneBuilder
             parent,
             "Zone_Exit",
             ZoneKind.Exit,
-            new Vector3(18.5f, 1.5f, 0f),
-            new Vector3(5f, 3f, 6f),
-            new Color(0.20f, 0.45f, 0.82f),
+            new Vector3(ExitCenter.x, 1.5f, 0f),
+            new Vector3(7.5f, 3f, 9f),
+            new Color(0.40f, 0.65f, 0.85f),
             GameLayers.Index(GameLayers.ExitZone),
             exitPoint);
 
@@ -237,8 +415,8 @@ public static class Parcial2SceneBuilder
             parent,
             "Zone_NorthRoom",
             ZoneKind.Room,
-            new Vector3(0f, 1.5f, 11.25f),
-            new Vector3(7.8f, 3f, 4.3f),
+            new Vector3(0f, 1.5f, 13.5f),
+            new Vector3(21f, 3f, 6f),
             new Color(0.72f, 0.72f, 0.72f),
             0);
 
@@ -246,11 +424,15 @@ public static class Parcial2SceneBuilder
             parent,
             "Zone_SouthRoom",
             ZoneKind.Room,
-            new Vector3(0f, 1.5f, -11.25f),
-            new Vector3(7.8f, 3f, 4.3f),
+            new Vector3(0f, 1.5f, -13.5f),
+            new Vector3(21f, 3f, 6f),
             new Color(0.72f, 0.72f, 0.72f),
             0);
     }
+
+    // ---------------------------------------------------------------------
+    // Agentes
+    // ---------------------------------------------------------------------
 
     private static GameObject BuildHunter(Transform parent, Material material)
     {
@@ -258,7 +440,7 @@ public static class Parcial2SceneBuilder
         hunter.name = "Hunter";
         hunter.layer = GameLayers.Index(GameLayers.Hunter);
         hunter.transform.SetParent(parent, false);
-        hunter.transform.position = new Vector3(-18.5f, 1f, 0f);
+        hunter.transform.position = new Vector3(InitialCenter.x, 1f, 0f);
         hunter.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
 
         Renderer renderer = hunter.GetComponent<Renderer>();
@@ -313,12 +495,12 @@ public static class Parcial2SceneBuilder
         GameObject boidsParent = CreateChild("Boids", parent);
         Vector3[] positions =
         {
-            new(-3.5f, 1f, -2.5f),
-            new(-1.5f, 1f, 2.5f),
-            new(1.5f, 1f, -1.5f),
-            new(3.5f, 1f, 2f),
-            new(0f, 1f, 0.5f),
-            new(-4.5f, 1f, 1f)
+            new(-6f, 1f, -4f),
+            new(-2f, 1f, 4f),
+            new(2f, 1f, -3f),
+            new(6f, 1f, 3f),
+            new(0f, 1f, 0f),
+            new(-7f, 1f, 2f)
         };
 
         for (int i = 0; i < positions.Length; i++)
@@ -334,12 +516,14 @@ public static class Parcial2SceneBuilder
     {
         GameObject wolvesParent = CreateChild("Wolves", parent);
 
+        // L1 anillo oeste, L2 anillo norte + sala norte, L3 anillo este,
+        // L4 anillo sur + sala sur. Ninguna ruta entra a las zonas seguras.
         Vector3[] positions =
         {
-            new(-2.5f, 1f, 10.5f),
-            new(2.5f, 1f, 12.2f),
-            new(-2.5f, 1f, -10.5f),
-            new(2.5f, 1f, -12.2f)
+            new(-22.5f, 1f, 15f),
+            new(0f, 1f, 19.5f),
+            new(22.5f, 1f, 0f),
+            new(0f, 1f, -19.5f)
         };
 
         WolfAgent[] wolves = new WolfAgent[positions.Length];
@@ -367,8 +551,8 @@ public static class Parcial2SceneBuilder
             SetFloat(serialized, "_patrolSpeed", 3.2f);
             SetFloat(serialized, "_alertSpeed", 4f);
             SetFloat(serialized, "_chaseSpeed", 4.2f);
-            SetFloat(serialized, "_viewRadius", 8f);
-            SetFloat(serialized, "_fovAngle", 110f);
+            SetFloat(serialized, "_viewRadius", 10f);
+            SetFloat(serialized, "_fovAngle", 120f);
             SetFloat(serialized, "_captureRadius", 1f);
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -379,22 +563,26 @@ public static class Parcial2SceneBuilder
         return wolves;
     }
 
+    // ---------------------------------------------------------------------
+    // Rutas
+    // ---------------------------------------------------------------------
+
     private static void BuildRoutes(Transform parent, GameObject hunterObject, WolfAgent[] wolves)
     {
+        // El Cazador patrulla el Coto en busca de boids; la salida la resuelve
+        // el estado Exit cuando completa las recolecciones.
         PatrolRoute hunterRoute = CreateRoute(
             parent,
             "Hunter Route",
             PatrolRoute.RouteMode.PingPong,
-            new Vector3(-18.5f, 1f, 0f),
-            new Vector3(-10f, 1f, 7.2f),
-            new Vector3(0f, 1f, 7.2f),
+            new Vector3(-6f, 1f, 0f),
+            new Vector3(-6f, 1f, 5.5f),
             new Vector3(0f, 1f, 5.5f),
-            new Vector3(0f, 1f, 0f),
+            new Vector3(6f, 1f, 5.5f),
+            new Vector3(6f, 1f, 0f),
+            new Vector3(6f, 1f, -5.5f),
             new Vector3(0f, 1f, -5.5f),
-            new Vector3(0f, 1f, -7.2f),
-            new Vector3(10f, 1f, -7.2f),
-            new Vector3(18.5f, 1f, 0f),
-            new Vector3(10f, 1f, 7.2f));
+            new Vector3(-6f, 1f, -5.5f));
 
         if (hunterObject != null)
         {
@@ -407,36 +595,45 @@ public static class Parcial2SceneBuilder
 
         PatrolRoute[] wolfRoutes =
         {
-            // La jauria patrulla las salas norte y sur, junto a las entradas
-            // del Coto. Asi amenaza la caceria sin acampar el Coto ni las
-            // bocas de los callejones seguros.
+            // L1: anillo oeste, ida y vuelta.
             CreateRoute(
                 parent,
                 "Wolf Route L1",
                 PatrolRoute.RouteMode.PingPong,
-                new Vector3(-2.5f, 1f, 10.5f),
-                new Vector3(2.5f, 1f, 10.5f)),
+                new Vector3(-22.5f, 1f, 15f),
+                new Vector3(-22.5f, 1f, 0f),
+                new Vector3(-22.5f, 1f, -15f)),
 
+            // L2: anillo norte + sala norte, entrando por los dos accesos.
             CreateRoute(
                 parent,
                 "Wolf Route L2",
                 PatrolRoute.RouteMode.PingPong,
-                new Vector3(2.5f, 1f, 12.2f),
-                new Vector3(-2.5f, 1f, 12.2f)),
+                new Vector3(-6f, 1f, 19.5f),
+                new Vector3(-6f, 1f, 13.5f),
+                new Vector3(0f, 1f, 13.5f),
+                new Vector3(6f, 1f, 13.5f),
+                new Vector3(6f, 1f, 19.5f)),
 
+            // L3: anillo este, ida y vuelta.
             CreateRoute(
                 parent,
                 "Wolf Route L3",
                 PatrolRoute.RouteMode.PingPong,
-                new Vector3(-2.5f, 1f, -10.5f),
-                new Vector3(2.5f, 1f, -10.5f)),
+                new Vector3(22.5f, 1f, 15f),
+                new Vector3(22.5f, 1f, 0f),
+                new Vector3(22.5f, 1f, -15f)),
 
+            // L4: anillo sur + sala sur, entrando por los dos accesos.
             CreateRoute(
                 parent,
                 "Wolf Route L4",
                 PatrolRoute.RouteMode.PingPong,
-                new Vector3(2.5f, 1f, -12.2f),
-                new Vector3(-2.5f, 1f, -12.2f))
+                new Vector3(-6f, 1f, -19.5f),
+                new Vector3(-6f, 1f, -13.5f),
+                new Vector3(0f, 1f, -13.5f),
+                new Vector3(6f, 1f, -13.5f),
+                new Vector3(6f, 1f, -19.5f))
         };
 
         if (wolves == null) return;
@@ -467,23 +664,27 @@ public static class Parcial2SceneBuilder
         return route;
     }
 
+    // ---------------------------------------------------------------------
+    // Sistemas
+    // ---------------------------------------------------------------------
+
     private static NavGraph BuildSystems(Transform parent)
     {
         GameObject boundsObject = CreateChild("Bounds", parent);
         WorldBounds bounds = boundsObject.AddComponent<WorldBounds>();
-        bounds.Configure(11.2f, 7.2f, false, true);
+        bounds.Configure(20f, 14f, false, true);
         EditorUtility.SetDirty(bounds);
 
         GameObject navObject = CreateChild("Nav Graph", parent);
         NavGraph navGraph = navObject.AddComponent<NavGraph>();
         navGraph.Configure(
             Vector3.zero,
-            new Vector2(44f, 32f),
+            new Vector2(72f, 45f),
             1f,
             0.45f,
             1f,
             GameLayers.Mask(GameLayers.Obstacle),
-            new Vector3(-18.5f, 1f, 0f),
+            new Vector3(InitialCenter.x, 1f, 0f),
             true);
         EditorUtility.SetDirty(navGraph);
 
@@ -506,11 +707,11 @@ public static class Parcial2SceneBuilder
 
         Camera camera = cameraObject.AddComponent<Camera>();
         camera.orthographic = true;
-        camera.orthographicSize = 18.5f;
+        camera.orthographicSize = 24f;
         camera.nearClipPlane = 0.3f;
         camera.farClipPlane = 200f;
         camera.clearFlags = CameraClearFlags.SolidColor;
-        camera.backgroundColor = new Color(0.04f, 0.05f, 0.08f);
+        camera.backgroundColor = new Color(0.09f, 0.10f, 0.13f);
 
         cameraObject.AddComponent<AudioListener>();
     }
@@ -533,6 +734,10 @@ public static class Parcial2SceneBuilder
         RenderSettings.ambientLight = new Color(0.38f, 0.38f, 0.45f);
         RenderSettings.fog = false;
     }
+
+    // ---------------------------------------------------------------------
+    // Helpers de construccion
+    // ---------------------------------------------------------------------
 
     private static void CreateFloor(Transform parent, string name, Vector3 center, Vector3 size, Material material)
     {

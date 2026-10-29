@@ -139,16 +139,20 @@ settings) y se puede reconstruir desde `Tools > Parcial 2 > Build Scene`.
 
 ### Escenario
 
-Mapa en anillo con un bloque central ocupado por el Coto de caza:
+Mapa reconstruido sobre una grilla de tiles de 1.5 unidades (32 x 28 tiles) que
+sigue el mapa de ejemplo:
 
-- `Zone_Initial`: spawn del Cazador.
-- `Zone_HuntingGround`: Coto con 6 boids confinados por `WorldBounds`.
-- `Zone_Safe_A` y `Zone_Safe_B`: callejones sin salida donde los lobos no entran.
-- `Zone_Exit`: meta del Cazador.
-- `Zone_NorthRoom` y `Zone_SouthRoom`: salas de paso.
+- `Zone_Initial`: sala cerrada al oeste, spawn del Cazador.
+- `Zone_HuntingGround`: Coto central de 14 x 10 tiles con 6 boids confinados.
+- `Zone_Safe_A` y `Zone_Safe_B`: callejones sin salida al noreste y suroeste.
+- `Zone_Exit`: sala cerrada al este, meta del Cazador.
+- `Zone_NorthRoom` y `Zone_SouthRoom`: salas de paso con dos accesos al anillo
+  y un bloque oscuro central.
 
-Cada zona tiene `ZoneVolume` (pertenencia, punto aleatorio y gizmos) y color de
-piso propio. El HUD muestra una leyenda con las zonas activas.
+El Coto se abre solo a izquierda y derecha sobre el corredor principal; las
+salas norte y sur no tienen paso directo al Coto. Cada zona tiene `ZoneVolume`
+(pertenencia, punto aleatorio y gizmos) y color de piso propio. El HUD muestra
+una leyenda con las zonas activas.
 
 ### Cómo ejecutar
 
@@ -170,17 +174,20 @@ piso propio. El HUD muestra una leyenda con las zonas activas.
     alejarse del punto de alerta.
   - `Gather` descarta cadáveres inalcanzables (por ejemplo, incrustados en una
     pared) para que el Cazador no quede trabado.
+  - Los boids quedan confinados al plano XZ (`BoidMotor` descarta la componente
+    vertical de steering y velocidad), así no se alejan del Coto por aire.
 - Balance del Cazador: `_speed = 5` en la escena del Parcial 2 y `6.5` al huir
   (`_fleeSpeedMultiplier = 1.3`). Los lobos se mantienen por debajo (3.2 / 4 /
   4.2) para que la huida sea posible.
 
 Playtest automatizado (`Parcial2Playtest`, 180 s simulados, `timeScale = 4`):
 
-- 3/3 recolecciones y escape por la Salida.
-- 1 captura (el estado `Dead` también queda cubierto).
+- 3/3 recolecciones y escape por la Salida (179.7 s simulados).
+- 0 capturas en la última corrida; `Flee` y `Dead` quedan cubiertos por las
+  corridas de regresión anteriores y el checklist manual.
 - 0 muestras de lobos dentro de zonas seguras.
-- Estados visitados: Cazador `Search`, `Attack`, `Gather`, `Flee`, `Exit`,
-  `Dead`; lobos `Patrol`, `Alert`, `Chase`, `Return`.
-- Alertas de jauría: sí.
+- Estados visitados: Cazador `Search`, `Attack`, `Gather`, `Exit`; lobos
+  `Patrol`, `Alert`, `Chase`, `Return`.
+- Alertas de jauría: sí. Después del escape los lobos vuelven a patrullar.
 
 Ver `PLAN_PARCIAL_2.md` para el plan completo y los criterios de aceptación.
