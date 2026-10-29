@@ -58,12 +58,26 @@ public class InterestObject : MonoBehaviour
             DestroyInterest();
     }
 
+    private void Update()
+    {
+        if (!IsAlive || _renderer == null) return;
+        if (_health >= _maxHealth) return;
+
+        UpdateVisual();
+    }
+
     private void UpdateVisual(bool force = false)
     {
         if (_renderer == null) return;
 
         float factor = _maxHealth > 0f ? Mathf.Clamp01(_health / _maxHealth) : 0f;
         Color color = Color.Lerp(new Color(1f, 0.15f, 0.1f), new Color(0.2f, 1f, 0.4f), factor);
+
+        if (factor < 0.5f)
+        {
+            float pulse = 0.75f + 0.25f * Mathf.Sin(Time.time * 12f);
+            color = new Color(color.r * pulse, color.g * pulse, color.b * pulse, 1f);
+        }
 
         if (!force && color == _lastColor) return;
 
