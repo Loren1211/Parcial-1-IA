@@ -14,14 +14,14 @@ TagManager:
   - Hunter
   - Boid
   - Interest
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Wolf
+  - Obstacle
+  - Walkable
+  - SafeZone
+  - HuntingGround
+  - ExitZone
+  - InitialZone
+  - WolfBlocker
   - 
   - 
   - 

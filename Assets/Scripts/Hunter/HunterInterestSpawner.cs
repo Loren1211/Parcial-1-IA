@@ -51,7 +51,7 @@ public class HunterInterestSpawner
         if (activeCount >= _hunter.MaxInterestObjects) return;
 
         Vector3 position = WorldBounds.Instance != null
-            ? WorldBounds.Instance.RandomPosition()
+            ? WorldBounds.Instance.RandomPosition(1f, 0.6f)
             : _hunter.transform.position;
 
         Object.Instantiate(_hunter.InterestObjectPrefab, position, Quaternion.identity);

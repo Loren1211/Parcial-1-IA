@@ -39,6 +39,11 @@ public class PatrolRoute : MonoBehaviour
             _waypoints.Add(child);
     }
 
+    public void Configure(RouteMode mode)
+    {
+        _mode = mode;
+    }
+
     private void OnValidate()
     {
         if (_waypoints == null) _waypoints = new List<Transform>();

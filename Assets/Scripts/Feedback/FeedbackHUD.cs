@@ -145,6 +145,7 @@ public class FeedbackHUD : MonoBehaviour
 
         DrawHunterPanel(manager);
         DrawLegend();
+        DrawZoneLegend();
         DrawEventLog(manager);
         DrawBoidList();
     }
@@ -170,7 +171,7 @@ public class FeedbackHUD : MonoBehaviour
 
         float y = panel.y + 8f;
 
-        GUI.Label(new Rect(panel.x + 10f, y, panel.width - 20f, 22f), "PARCIAL 1 - IA", _headerStyle);
+        GUI.Label(new Rect(panel.x + 10f, y, panel.width - 20f, 22f), "PARCIAL 2 - IA", _headerStyle);
         y += 24f;
 
         GUI.Label(new Rect(panel.x + 10f, y, panel.width - 20f, 18f),
@@ -270,6 +271,44 @@ public class FeedbackHUD : MonoBehaviour
         GUI.color = old;
 
         GUI.Label(new Rect(x + 20f, y, 250f, 18f), text, _labelStyle);
+    }
+
+    private void DrawZoneLegend()
+    {
+        var zones = ZoneVolume.All;
+        if (zones == null || zones.Count == 0) return;
+
+        float rowHeight = 18f;
+        float height = 34f + zones.Count * rowHeight;
+        Rect panel = new Rect(Screen.width - 300f, 246f, 290f, height);
+        DrawPanel(panel);
+
+        GUI.Label(new Rect(panel.x + 10f, panel.y + 8f, panel.width - 20f, 22f), "ZONAS", _headerStyle);
+
+        float y = panel.y + 34f;
+
+        for (int i = 0; i < zones.Count; i++)
+        {
+            ZoneVolume zone = zones[i];
+            if (zone == null) continue;
+
+            DrawLegendRow(panel.x + 12f, y, zone.Color, $"{zone.name} ({ZoneLabel(zone.Kind)})");
+            y += rowHeight;
+        }
+    }
+
+    private static string ZoneLabel(ZoneKind kind)
+    {
+        switch (kind)
+        {
+            case ZoneKind.Initial: return "inicio";
+            case ZoneKind.HuntingGround: return "coto";
+            case ZoneKind.Safe: return "segura";
+            case ZoneKind.Exit: return "salida";
+            case ZoneKind.Room: return "sala";
+            case ZoneKind.Corridor: return "pasillo";
+            default: return kind.ToString();
+        }
     }
 
     private void DrawEventLog(FeedbackManager manager)

@@ -127,3 +127,36 @@ Ver `ARQUITECTURA.md` para el diagrama y el detalle de responsabilidades.
 - Compilación estática de runtime y editor: **sin errores**.
 - QA de runtime, profiler y build standalone: **pendiente de ejecutar en el editor** (ver `QA_CHECKLIST.md`).
 - La escena puede ejecutarse sin el objeto `Feedback`: `FeedbackManager` se auto-crea al iniciar.
+
+## Parcial 2 — Cazador y lobos
+
+El Parcial 2 se desarrolla en la rama `feature/parcial-2` y conserva intacto el
+Parcial 1. La escena nueva es `Assets/Scenes/Parcial2.unity` (primera en build
+settings) y se puede reconstruir desde `Tools > Parcial 2 > Build Scene`.
+
+### Escenario
+
+Mapa en anillo con un bloque central ocupado por el Coto de caza:
+
+- `Zone_Initial`: spawn del Cazador.
+- `Zone_HuntingGround`: Coto con 6 boids confinados por `WorldBounds`.
+- `Zone_Safe_A` y `Zone_Safe_B`: callejones sin salida donde los lobos no entran.
+- `Zone_Exit`: meta del Cazador.
+- `Zone_NorthRoom` y `Zone_SouthRoom`: salas de paso.
+
+Cada zona tiene `ZoneVolume` (pertenencia, punto aleatorio y gizmos) y color de
+piso propio. El HUD muestra una leyenda con las zonas activas.
+
+### Cómo ejecutar
+
+1. Abrir `Assets/Scenes/Parcial2.unity`.
+2. Presionar **Play**.
+3. Opcional: `Tools > Parcial 2 > Validate Scene` y
+   `Tools > Parcial 2 > Capture Preview`.
+
+### Estado
+
+- Fase 0 (preparación) y Fase 1 (escenario y zonas): completas.
+- Navegación, lobos y FSM ampliada del Cazador: en desarrollo.
+
+Ver `PLAN_PARCIAL_2.md` para el plan completo y los criterios de aceptación.
