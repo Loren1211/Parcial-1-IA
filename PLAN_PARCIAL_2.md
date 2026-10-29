@@ -165,7 +165,7 @@ Assets/Scripts/
 - [x] Gizmos de FOV y radios.
 - [x] Playtest completo y checklist.
 - [x] PDF `Nieto Lorenzo Parcial 2.pdf`.
-- [ ] Push del repo público y merge a `main`.
+- [x] Push del repo público y merge a `main`.
 
 ## Resultado del playtest automatizado
 

@@ -161,7 +161,7 @@ piso propio. El HUD muestra una leyenda con las zonas activas.
 - Fase 0 (preparación), Fase 1 (escenario y zonas), Fase 2 (navegación),
   Fase 3 (lobos) y Fase 4 (FSM ampliada del Cazador): completas.
 - Fase 5 (feedback y QA): HUD, gizmos, playtest y PDF de entrega completos;
-  queda el push del repositorio.
+  repositorio publicado.
 
 Playtest automatizado (`Parcial2Playtest`, 180 s simulados, `timeScale = 4`):
 
