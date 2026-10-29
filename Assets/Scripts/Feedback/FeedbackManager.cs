@@ -16,6 +16,7 @@ public class FeedbackManager : MonoBehaviour
 
     private List<LogEntry> _log = new();
     private List<FloatingText> _floatingTexts = new();
+    private List<Tracer> _tracers = new();
 
     public int Kills { get; private set; }
     public int Gathers { get; private set; }
@@ -25,6 +26,7 @@ public class FeedbackManager : MonoBehaviour
 
     public IReadOnlyList<LogEntry> Log => _log;
     public IReadOnlyList<FloatingText> FloatingTexts => _floatingTexts;
+    public IReadOnlyList<Tracer> Tracers => _tracers;
 
     public class LogEntry
     {
@@ -36,6 +38,15 @@ public class FeedbackManager : MonoBehaviour
     {
         public Vector3 Position;
         public string Text;
+        public Color Color;
+        public float Life;
+        public float MaxLife;
+    }
+
+    public class Tracer
+    {
+        public Vector3 From;
+        public Vector3 To;
         public Color Color;
         public float Life;
         public float MaxLife;
@@ -67,6 +78,7 @@ public class FeedbackManager : MonoBehaviour
     {
         _log ??= new List<LogEntry>();
         _floatingTexts ??= new List<FloatingText>();
+        _tracers ??= new List<Tracer>();
 
         if (_maxLogEntries <= 0) _maxLogEntries = 8;
         if (_floatingTextLifetime <= 0f) _floatingTextLifetime = 1.6f;
@@ -96,6 +108,15 @@ public class FeedbackManager : MonoBehaviour
             if (text.Life <= 0f)
                 _floatingTexts.RemoveAt(i);
         }
+
+        for (int i = _tracers.Count - 1; i >= 0; i--)
+        {
+            Tracer tracer = _tracers[i];
+            tracer.Life -= Time.deltaTime;
+
+            if (tracer.Life <= 0f)
+                _tracers.RemoveAt(i);
+        }
     }
 
     public void AddLog(string message)
@@ -124,6 +145,19 @@ public class FeedbackManager : MonoBehaviour
         });
     }
 
+    public void SpawnTracer(Vector3 from, Vector3 to, Color color, float lifetime = 0.18f)
+    {
+        _tracers ??= new List<Tracer>();
+        _tracers.Add(new Tracer
+        {
+            From = from,
+            To = to,
+            Color = color,
+            Life = lifetime,
+            MaxLife = lifetime
+        });
+    }
+
     public void NotifyHunterStateChanged(HunterAgent.States previous, HunterAgent.States current)
     {
         if (previous == current) return;
@@ -131,16 +165,16 @@ public class FeedbackManager : MonoBehaviour
         AddLog($"CAZADOR: {previous} -> {current}");
     }
 
-    public void NotifyAttack(BoidAgent target, bool isMelee)
+    public void NotifyAttack(BoidAgent target, bool isMelee, Vector3 from)
     {
         if (target == null) return;
 
         string label = isMelee ? "MELEE" : "RANGE";
+        Color color = isMelee ? Color.red : new Color(1f, 0.55f, 0f);
+
         AddLog($"{label}: {target.name}");
-        SpawnFloatingText(
-            target.transform.position + Vector3.up * 1.2f,
-            label,
-            isMelee ? Color.red : new Color(1f, 0.55f, 0f));
+        SpawnFloatingText(target.transform.position + Vector3.up * 1.2f, label, color);
+        SpawnTracer(from, target.transform.position + Vector3.up * 0.8f, color);
     }
 
     public void NotifyKill(BoidAgent target)

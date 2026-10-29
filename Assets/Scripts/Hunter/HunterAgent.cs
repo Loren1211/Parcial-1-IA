@@ -114,7 +114,7 @@ public class HunterAgent : MonoBehaviour
     private void OnAttacked(BoidAgent target, bool isMelee)
     {
         LastAction = (isMelee ? "Ataque melee a " : "Ataque a distancia a ") + target.name;
-        FeedbackManager.Instance?.NotifyAttack(target, isMelee);
+        FeedbackManager.Instance?.NotifyAttack(target, isMelee, transform.position + Vector3.up * 0.8f);
     }
 
     private void OnKilled(BoidAgent target)
@@ -130,6 +130,10 @@ public class HunterAgent : MonoBehaviour
 
         LastAction = $"Estado: {previous} -> {current}";
         FeedbackManager.Instance?.NotifyHunterStateChanged(previous, current);
+        FeedbackManager.Instance?.SpawnFloatingText(
+            transform.position + Vector3.up * 1.9f,
+            $"{previous} -> {current}",
+            Color.white);
     }
 
     private void OnDrawGizmosSelected()

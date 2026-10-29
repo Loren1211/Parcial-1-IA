@@ -49,11 +49,14 @@ Abrir `Assets/Scenes/SampleScene.unity`, presionar Play y verificar:
 - [ ] Con TBA listo y un boid en percepción, entra a `Attack` y se pone rojo.
 - [ ] Dentro de `MeleeAttackRadius` ataca cuerpo a cuerpo (`MELEE`).
 - [ ] Entre melee y `RangeAttackRadius` ataca a distancia (`RANGE`).
+- [ ] En `Attack` se ve una línea roja hacia el objetivo y un tracer al atacar.
 - [ ] Fuera de rango, persigue al objetivo.
 - [ ] Un ataque exitoso reinicia la barra de TBA.
 - [ ] Si el objetivo sale de percepción, vuelve a `Patrol` **sin** reiniciar el TBA.
 - [ ] Si el objetivo muere, pasa a `Gather` y se pone amarillo.
 - [ ] En `Gather` se acerca al cadáver, muestra `RECOLECTANDO N%` y recolecta a los 1.5 s.
+- [ ] Sobre el cadáver aparece la etiqueta `GATHERING` y su barra de progreso.
+- [ ] Al cambiar de estado se ve un texto flotante con la transición.
 - [ ] Si el cadáver desaparece o respawnea antes, cancela Gather y vuelve a Patrol (log `GATHER CANCELADO`).
 - [ ] El log registra las transiciones `CAZADOR: Patrol -> Attack`, etc.
 
@@ -63,7 +66,7 @@ Abrir `Assets/Scenes/SampleScene.unity`, presionar Play y verificar:
 - [ ] El HUD muestra `Cebos activos: N/5` y nunca supera 5.
 - [ ] Al destruirse un cebo, el contador baja y el spawner puede generar otro.
 - [ ] El cebo cambia de verde a rojo a medida que pierde vida.
-- [ ] La etiqueta del cebo muestra la vida restante.
+- [ ] La etiqueta del cebo muestra la vida restante y tiene barra de vida.
 
 ### Casos borde
 

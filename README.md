@@ -46,9 +46,11 @@ Los agentes son autónomos: no hay control manual ni líder. La simulación se o
   - Rojo: Attack.
   - Amarillo: Gather.
   - Barra de TBA y progreso de recolección en el HUD.
+  - Línea roja hacia el objetivo en Attack y tracer al atacar.
+  - Barra de progreso de Gather sobre el cadáver.
 - **Cebos**
   - Color de verde (sano) a rojo (a punto de destruirse).
-  - Etiqueta con vida restante.
+  - Etiqueta con vida restante y barra de vida.
   - Al destruirse: texto flotante y contador.
 - **HUD**
   - Estado del cazador, objetivo, TBA, boids totales/detectados, cebos activos, kills, recolecciones, respawns y cebos destruidos.

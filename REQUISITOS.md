@@ -40,8 +40,9 @@ Tabla de trazabilidad entre cada requisito, la clase que lo implementa y la evid
 | Ataque exitoso → reset TBA | `HunterCombat` reinicia el timer en cada ataque | La barra de TBA vuelve a cero |
 | Ataque exitoso → salir de Attack | Si el objetivo muere, `HunterAttackState` pasa a `Gather`; si sigue vivo, continúa la persecución | Transición visible a `Gather` y log |
 | Objetivo fuera de visión → Patrol sin reset TBA | `HunterAttackState.StillInPerception()` cambia a Patrol sin tocar `HunterCombat` | Log de transición y barra de TBA conservada |
+| Línea/tracer de ataque | `FeedbackHUD.DrawHunterTargetHelpers` y `FeedbackManager.SpawnTracer` | Línea roja al objetivo y tracer `MELEE`/`RANGE` |
 | Gather al detectar cadáver | `HunterPatrolState` prioriza `Sensor.HasInactiveBoids` | Cazador amarillo + etiqueta `Gather` |
-| Recolección con tiempo | `HunterGatherState` acumula 1.5 s dentro de `StopRadius` | Barra `RECOLECTANDO N%` en el HUD |
+| Recolección con tiempo | `HunterGatherState` acumula 1.5 s dentro de `StopRadius` | Barra `RECOLECTANDO N%` en el HUD y sobre el cadáver |
 | Cancelar Gather si el objetivo no está | `HunterGatherState.Update` vuelve a Patrol y registra el evento | Log `GATHER CANCELADO` |
 
 ## Feedback y performance

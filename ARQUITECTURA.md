@@ -178,6 +178,7 @@ classDiagram
         +int Respawns
         +AddLog(string)
         +SpawnFloatingText(...)
+        +SpawnTracer(...)
         +NotifyAttack(...)
         +NotifyKill(...)
         +NotifyGather(...)

@@ -380,6 +380,8 @@ public class FeedbackHUD : MonoBehaviour
                     label,
                     GetHunterColor(_hunter.FSM.CurrentStateID));
             }
+
+            DrawHunterTargetHelpers();
         }
 
         for (int i = 0; i < _interests.Length; i++)
@@ -390,21 +392,44 @@ public class FeedbackHUD : MonoBehaviour
             Vector3 screen = _camera.WorldToScreenPoint(interest.transform.position + Vector3.up * 1.0f);
             if (screen.z <= 0f) continue;
 
+            Vector2 point = new(screen.x, Screen.height - screen.y);
+
             float healthFactor = interest.MaxHealth > 0f
                 ? Mathf.Clamp01(interest.Health / interest.MaxHealth)
                 : 0f;
 
-            DrawWorldLabel(
-                new Vector2(screen.x, Screen.height - screen.y),
-                $"CEBO {interest.Health:F0}/{interest.MaxHealth:F0}",
-                Color.Lerp(new Color(1f, 0.15f, 0.1f), new Color(0.2f, 1f, 0.4f), healthFactor));
+            Color color = Color.Lerp(
+                new Color(1f, 0.15f, 0.1f),
+                new Color(0.2f, 1f, 0.4f),
+                healthFactor);
+
+            DrawWorldLabel(point, $"CEBO {interest.Health:F0}/{interest.MaxHealth:F0}", color);
+            DrawHealthBar(new Vector2(point.x, point.y + 14f), interest.Health, interest.MaxHealth);
         }
 
-        if (FeedbackManager.Instance == null) return;
+        FeedbackManager manager = FeedbackManager.Instance;
+        if (manager == null) return;
 
-        for (int i = 0; i < FeedbackManager.Instance.FloatingTexts.Count; i++)
+        for (int i = 0; i < manager.Tracers.Count; i++)
         {
-            FeedbackManager.FloatingText text = FeedbackManager.Instance.FloatingTexts[i];
+            FeedbackManager.Tracer tracer = manager.Tracers[i];
+
+            Vector3 fromScreen = _camera.WorldToScreenPoint(tracer.From);
+            Vector3 toScreen = _camera.WorldToScreenPoint(tracer.To);
+            if (fromScreen.z <= 0f || toScreen.z <= 0f) continue;
+
+            float alpha = Mathf.Clamp01(tracer.Life / Mathf.Max(0.01f, tracer.MaxLife));
+
+            DrawLine(
+                new Vector2(fromScreen.x, Screen.height - fromScreen.y),
+                new Vector2(toScreen.x, Screen.height - toScreen.y),
+                2f,
+                new Color(tracer.Color.r, tracer.Color.g, tracer.Color.b, alpha));
+        }
+
+        for (int i = 0; i < manager.FloatingTexts.Count; i++)
+        {
+            FeedbackManager.FloatingText text = manager.FloatingTexts[i];
             Vector3 screen = _camera.WorldToScreenPoint(text.Position);
             if (screen.z <= 0f) continue;
 
@@ -418,6 +443,41 @@ public class FeedbackHUD : MonoBehaviour
                 _centerStyle);
             GUI.color = old;
         }
+    }
+
+    private void DrawHunterTargetHelpers()
+    {
+        if (_hunter == null || _hunter.CurrentTarget == null) return;
+
+        Vector3 fromScreen = _camera.WorldToScreenPoint(_hunter.transform.position + Vector3.up * 0.8f);
+        Vector3 toScreen = _camera.WorldToScreenPoint(_hunter.CurrentTarget.transform.position + Vector3.up * 0.8f);
+
+        if (fromScreen.z <= 0f || toScreen.z <= 0f) return;
+
+        Vector2 from = new(fromScreen.x, Screen.height - fromScreen.y);
+        Vector2 to = new(toScreen.x, Screen.height - toScreen.y);
+
+        if (_hunter.FSM.CurrentStateID == HunterAgent.States.Attack)
+            DrawLine(from, to, 1.5f, new Color(1f, 0.2f, 0.2f, 0.55f));
+
+        if (_hunter.FSM.CurrentStateID != HunterAgent.States.Gather) return;
+
+        Vector3 gatherScreen = _camera.WorldToScreenPoint(
+            _hunter.CurrentTarget.transform.position + Vector3.up * 1.9f);
+
+        if (gatherScreen.z <= 0f) return;
+
+        Vector2 point = new(gatherScreen.x, Screen.height - gatherScreen.y);
+
+        DrawWorldLabel(
+            point,
+            $"GATHERING {_hunter.GatherProgress * 100f:F0}%",
+            new Color(1f, 0.85f, 0.1f));
+
+        DrawBar(
+            new Rect(point.x - 34f, point.y + 18f, 68f, 6f),
+            _hunter.GatherProgress,
+            new Color(1f, 0.85f, 0.1f));
     }
 
     private void DrawWorldLabel(Vector2 point, string text, Color color)
@@ -482,6 +542,27 @@ public class FeedbackHUD : MonoBehaviour
         GUIUtility.RotateAroundPivot(-90f, center);
         GUI.DrawTexture(
             new Rect(center.x - size * 0.5f, center.y - 1.5f, size, 3f),
+            Texture2D.whiteTexture);
+
+        GUI.matrix = oldMatrix;
+        GUI.color = oldColor;
+    }
+
+    private void DrawLine(Vector2 from, Vector2 to, float width, Color color)
+    {
+        Vector2 delta = to - from;
+        float length = delta.magnitude;
+        if (length < 0.01f) return;
+
+        float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
+
+        Matrix4x4 oldMatrix = GUI.matrix;
+        Color oldColor = GUI.color;
+
+        GUI.color = color;
+        GUIUtility.RotateAroundPivot(angle, from);
+        GUI.DrawTexture(
+            new Rect(from.x, from.y - width * 0.5f, length, width),
             Texture2D.whiteTexture);
 
         GUI.matrix = oldMatrix;
