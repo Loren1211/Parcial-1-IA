@@ -17,6 +17,8 @@ public class FeedbackHUD : MonoBehaviour
     private Camera _camera;
 
     private float _refreshTimer;
+    private bool _escapeSeen;
+    private float _escapeTime;
 
     private GUIStyle _panelStyle;
     private GUIStyle _labelStyle;
@@ -40,6 +42,14 @@ public class FeedbackHUD : MonoBehaviour
         {
             _refreshTimer = 0.5f;
             RefreshReferences();
+        }
+
+        // Momento exacto del escape: el panel de fin de partida muestra el
+        // tiempo congelado, no el reloj que sigue corriendo.
+        if (_hunter != null && _hunter.HasEscaped && !_escapeSeen)
+        {
+            _escapeSeen = true;
+            _escapeTime = Time.timeSinceLevelLoad;
         }
     }
 
@@ -99,6 +109,14 @@ public class FeedbackHUD : MonoBehaviour
                 FeedbackManager.Instance?.AddLog($"Gizmos: {(FeedbackManager.ShowGizmos ? "ON" : "OFF")}");
                 current.Use();
                 break;
+
+            case KeyCode.R:
+                if (_hunter == null || !_hunter.HasEscaped) break;
+
+                UnityEngine.SceneManagement.SceneManager.LoadScene(
+                    UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+                current.Use();
+                break;
         }
     }
 
@@ -150,6 +168,52 @@ public class FeedbackHUD : MonoBehaviour
         DrawZoneLegend();
         DrawEventLog(manager);
         DrawBoidList();
+        DrawEndPanel(manager);
+    }
+
+    /// <summary>
+    /// Resumen de fin de partida. Aparece cuando el Cazador escapa por la
+    /// Salida y congela el tiempo para que el resultado quede legible.
+    /// </summary>
+    private void DrawEndPanel(FeedbackManager manager)
+    {
+        if (_hunter == null || !_hunter.HasEscaped) return;
+
+        float width = 420f;
+        float height = 176f;
+        Rect panel = new Rect(
+            (Screen.width - width) * 0.5f,
+            (Screen.height - height) * 0.5f,
+            width,
+            height);
+
+        DrawPanel(panel);
+
+        int gathers = _hunter.Gathers;
+        int required = _hunter.RequiredGathers;
+        int kills = manager != null ? manager.Kills : 0;
+        float elapsed = _escapeSeen ? _escapeTime : Time.timeSinceLevelLoad;
+
+        float y = panel.y + 12f;
+
+        GUI.Label(new Rect(panel.x + 14f, y, panel.width - 28f, 26f), "PARTIDA COMPLETADA", _headerStyle);
+        y += 30f;
+
+        GUI.Label(new Rect(panel.x + 14f, y, panel.width - 28f, 20f),
+            "El Cazador escapó por la Salida", _labelStyle);
+        y += 26f;
+
+        GUI.Label(new Rect(panel.x + 14f, y, panel.width - 28f, 20f),
+            $"Tiempo: {Mathf.FloorToInt(elapsed / 60f):00}:{Mathf.FloorToInt(elapsed % 60f):00}   |   " +
+            $"Recolecciones: {gathers}/{required}", _labelStyle);
+        y += 22f;
+
+        GUI.Label(new Rect(panel.x + 14f, y, panel.width - 28f, 20f),
+            $"Capturas: {_hunter.Deaths}   |   Boids cazados: {kills}", _labelStyle);
+        y += 26f;
+
+        GUI.Label(new Rect(panel.x + 14f, y, panel.width - 28f, 20f),
+            "R: reiniciar la partida", _labelStyle);
     }
 
     private void DrawHunterPanel(FeedbackManager manager)
@@ -224,7 +288,7 @@ public class FeedbackHUD : MonoBehaviour
         y += 20f;
 
         GUI.Label(new Rect(panel.x + 10f, y, panel.width - 20f, 18f),
-            $"Respawns: {respawns}", _labelStyle);
+            $"Respawns: {respawns}   |   Capturas: {(_hunter != null ? _hunter.Deaths : 0)}", _labelStyle);
         y += 20f;
 
         if (_hunter != null && _hunter.FSM.CurrentStateID == HunterAgent.States.Gather)

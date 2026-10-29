@@ -30,6 +30,7 @@ El proyecto está pensado para que cada requisito de la consigna sea visible en 
 | `F1` | Mostrar/ocultar el HUD |
 | `F2` | Mostrar/ocultar etiquetas 3D |
 | `F3` | Mostrar/ocultar gizmos de radios |
+| `R` | Reiniciar la partida (solo con la Salida alcanzada) |
 
 Los agentes son autónomos: no hay control manual ni líder. La simulación se observa.
 
@@ -86,7 +87,7 @@ Los agentes son autónomos: no hay control manual ni líder. La simulación se o
 
 | Campo | Valor actual | Uso |
 |---|---|---|
-| `_speed` | 6.5 | Velocidad de movimiento |
+| `_speed` | 6.5 | Velocidad de movimiento (SampleScene; Parcial 2 usa 5) |
 | `_tba` | 2 | Tiempo entre ataques |
 | `_perceptionRadius` | 9 | Radio de detección de boids |
 | `_rangeAttackRadius` | 6 | Radio de ataque a distancia |
@@ -159,15 +160,27 @@ piso propio. El HUD muestra una leyenda con las zonas activas.
 ### Estado
 
 - Fase 0 (preparación), Fase 1 (escenario y zonas), Fase 2 (navegación),
-  Fase 3 (lobos) y Fase 4 (FSM ampliada del Cazador): completas.
-- Fase 5 (feedback y QA): HUD, gizmos, playtest y PDF de entrega completos;
-  repositorio publicado.
+  Fase 3 (lobos), Fase 4 (FSM ampliada del Cazador) y Fase 5 (feedback y QA):
+  completas.
+- Fase 6 (cierre de partida y robustez): completa.
+  - Panel `PARTIDA COMPLETADA` con tiempo, recolecciones, capturas y boids
+    cazados; tecla `R` para reiniciar.
+  - Contador `Capturas` en el HUD.
+  - La alerta de los lobos gira en el lugar para barrer 360° con su FOV, sin
+    alejarse del punto de alerta.
+  - `Gather` descarta cadáveres inalcanzables (por ejemplo, incrustados en una
+    pared) para que el Cazador no quede trabado.
+- Balance del Cazador: `_speed = 5` en la escena del Parcial 2 y `6.5` al huir
+  (`_fleeSpeedMultiplier = 1.3`). Los lobos se mantienen por debajo (3.2 / 4 /
+  4.2) para que la huida sea posible.
 
 Playtest automatizado (`Parcial2Playtest`, 180 s simulados, `timeScale = 4`):
 
 - 3/3 recolecciones y escape por la Salida.
-- 0 capturas y 0 muestras de lobos dentro de zonas seguras.
-- Estados visitados: Cazador `Search`, `Attack`, `Gather`, `Flee`, `Exit`;
-  lobos `Patrol`, `Alert`, `Chase`, `Return`.
+- 1 captura (el estado `Dead` también queda cubierto).
+- 0 muestras de lobos dentro de zonas seguras.
+- Estados visitados: Cazador `Search`, `Attack`, `Gather`, `Flee`, `Exit`,
+  `Dead`; lobos `Patrol`, `Alert`, `Chase`, `Return`.
+- Alertas de jauría: sí.
 
 Ver `PLAN_PARCIAL_2.md` para el plan completo y los criterios de aceptación.

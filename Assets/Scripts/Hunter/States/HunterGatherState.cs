@@ -4,17 +4,20 @@ public class HunterGatherState : HunterStateBase
 {
     private const float GatherTime = 1.5f;
     private const float StopRadius = 1f;
+    private const float MaxApproachTime = 8f;
 
     private BoidAgent _target;
     private float _timer;
+    private float _approachTimer;
 
     public HunterGatherState(HunterAgent hunter) : base(hunter) { }
 
     public override void Enter()
     {
-        _target = Hunter.Sensor.NearestInactiveBoid;
+        _target = Hunter.FindGatherableBoid();
         Hunter.CurrentTarget = _target;
         _timer = 0f;
+        _approachTimer = 0f;
 
         if (_target == null)
         {
@@ -37,6 +40,18 @@ public class HunterGatherState : HunterStateBase
 
         if (distance > StopRadius)
         {
+            _approachTimer += Time.deltaTime;
+
+            // Si no logra acercarse (cadaver detras de una pared o en un
+            // rincon inalcanzable), lo descarta para no quedar trabado.
+            if (_approachTimer >= MaxApproachTime)
+            {
+                FeedbackManager.Instance?.AddLog("GATHER CANCELADO: objetivo inalcanzable");
+                Hunter.IgnoreGatherTarget(_target);
+                _fsm.ChangeState(Hunter.IdleState);
+                return;
+            }
+
             NavigateTowards(_target.transform.position);
             return;
         }

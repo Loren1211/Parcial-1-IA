@@ -276,7 +276,7 @@ public static class Parcial2SceneBuilder
         SetInt(serialized, "_boidLayer", GameLayers.Mask(GameLayers.Boid));
         SetInt(serialized, "_wolfLayer", GameLayers.Mask(GameLayers.Wolf));
         SetInt(serialized, "_obstacleMask", GameLayers.Mask(GameLayers.Obstacle));
-        SetFloat(serialized, "_speed", 7f);
+        SetFloat(serialized, "_speed", 5f);
         SetFloat(serialized, "_tba", 2f);
         SetFloat(serialized, "_rangeAttackRadius", 6f);
         SetFloat(serialized, "_meleeAttackRadius", 1.5f);

@@ -66,7 +66,8 @@ Comportamiento:
   o cadáveres.
 - `Attack`: persigue y ataca boids dentro de rango; usa A* hasta tener línea de
   visión y solo entonces steering directo en el tramo final.
-- `Gather`: va a un cadáver, lo recolecta y suma al contador.
+- `Gather`: va a un cadáver, lo recolecta y suma al contador. Descarta los
+  cadáveres inalcanzables para no quedar bloqueado.
 - `Flee`: si detecta un lobo, huye a la zona segura más cercana y espera ahí
   `SafeZoneWaitTime`; es inmune mientras está dentro.
 - `Exit`: con `RequiredGathers` alcanzadas, navega a la Salida y termina.
@@ -83,6 +84,8 @@ Mínimo 4 lobos.
 - Al detectar al Cazador emiten un aullido/alerta que comparte la última
   posición conocida con la jauría (bus de eventos con cooldown).
 - Navegan con A* sobre el mismo grafo hasta la última posición conocida.
+- En la alerta giran en el lugar para barrer 360° con su FOV; si no encuentran
+  al Cazador vuelven a patrullar.
 - Persiguen y capturan al Cazador si lo alcanzan.
 - No pueden entrar a las zonas seguras (nodos excluidos + guarda lógica +
   collider `WolfBlocker`).
@@ -104,6 +107,8 @@ Mínimo 4 lobos.
 - Zona segura elegida al huir.
 - Gizmos de radios de boids, radios del Cazador y FOV de los lobos.
 - Leyenda de zonas en el HUD.
+- Panel de fin de partida con tiempo, recolecciones, capturas y boids cazados;
+  tecla `R` para reiniciar.
 
 ## Arquitectura prevista
 
@@ -167,24 +172,45 @@ Assets/Scripts/
 - [x] PDF `Nieto Lorenzo Parcial 2.pdf`.
 - [x] Push del repo público y merge a `main`.
 
+### Fase 6 — Cierre de partida y robustez
+
+- [x] Panel `PARTIDA COMPLETADA` con tiempo, recolecciones, capturas y boids
+      cazados.
+- [x] Tecla `R` para reiniciar la partida desde el panel.
+- [x] Contador `Capturas` en el HUD.
+- [x] Alerta de lobos con barrido de 360° en el lugar (gira el FOV sin alejarse
+      del punto de alerta).
+- [x] `Gather` descarta cadáveres inalcanzables y tiene un tiempo máximo de
+      aproximación.
+- [x] Balance del Cazador a velocidad 5 (6.5 al huir) y playtest de regresión.
+
+Nota de balance: se probó un barrido en espiral con puntos de búsqueda
+alrededor de la última posición conocida. La jauría quedaba acampando el Coto y
+el Cazador no completaba las recolecciones (0/3 y 7-8 capturas en el playtest).
+Se reemplazó por el giro en el lugar, que conserva la búsqueda visible sin
+romper la huida.
+
 ## Resultado del playtest automatizado
 
 `Parcial2Playtest` ejecuta la escena en batchmode con `timeScale = 4` durante
 180 s simulados y registra estados, recolecciones, capturas, alertas y
 violaciones de zonas seguras.
 
-Última corrida (rutas de lobos en las salas norte/sur):
+Última corrida (velocidad 5, alerta con giro en el lugar):
 
 - Recolecciones: **3/3**.
 - Escape por la Salida: **sí**.
-- Capturas: **0**.
+- Capturas: **1** (el estado `Dead` queda cubierto).
 - Lobos dentro de zonas seguras: **0 muestras**.
-- Estados del Cazador visitados: `Search`, `Attack`, `Gather`, `Flee`, `Exit`.
+- Estados del Cazador visitados: `Search`, `Attack`, `Gather`, `Flee`, `Exit`,
+  `Dead`.
 - Estados de lobos visitados: `Patrol`, `Alert`, `Chase`, `Return`.
 - Alertas de jauría: **sí**.
 
-El estado `Dead` queda cubierto por la FSM y por las pruebas de captura
-anteriores; en esta corrida el Cazador llegó a la Salida sin ser capturado.
+La corrida se repitió dos veces con el mismo resultado (3/3, escape y 1
+captura). El barrido en espiral de la Fase 6 se descartó porque la jauría
+acampaba el Coto: el Cazador no completaba recolecciones y acumulaba 7-8
+capturas.
 
 ## Criterios de aceptación
 

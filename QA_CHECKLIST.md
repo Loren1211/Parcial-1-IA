@@ -78,6 +78,20 @@ Abrir `Assets/Scenes/SampleScene.unity`, presionar Play y verificar:
 - [ ] Sin prefab de cebo: el spawner no lanza excepciones.
 - [ ] Referencias nulas: el HUD muestra `Sin cazador` / `Sin FeedbackManager` en lugar de romperse.
 
+### Parcial 2
+
+Abrir `Assets/Scenes/Parcial2.unity` y verificar:
+
+- [ ] Se ven las zonas Inicial, Coto, dos zonas seguras y Salida con colores distintos.
+- [ ] Hay 6 boids dentro del Coto y 4 lobos fuera.
+- [ ] El HUD muestra el estado del Cazador, las recolecciones, las capturas y los nodos del camino A*.
+- [ ] Con F3 se ven los radios de los boids, el FOV de los lobos y el camino A* activo.
+- [ ] Los lobos patrullan, alertan a la jauría y persiguen con A*.
+- [ ] Al entrar a una zona segura, el Cazador es inmune y los lobos no entran.
+- [ ] Al completar 3 recolecciones, el Cazador va a la Salida y aparece `PARTIDA COMPLETADA`.
+- [ ] Con la partida completada, `R` reinicia la escena.
+- [ ] Ningún lobo queda dentro de una zona segura.
+
 ## 3. Performance (pendiente)
 
 - [ ] Profiler > CPU: 60 FPS estables con 6 boids.

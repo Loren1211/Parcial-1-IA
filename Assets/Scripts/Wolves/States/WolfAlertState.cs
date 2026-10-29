@@ -1,11 +1,16 @@
 using UnityEngine;
 
 /// <summary>
-/// Se dirige a la ultima posicion conocida que compartio otro lobo, espera un
-/// momento buscando y vuelve a la patrulla.
+/// Alerta: el lobo va a la ultima posicion conocida que compartio la jauria y
+/// barre la zona girando sobre si mismo para cubrir los 360 grados con su FOV.
+/// Si no encuentra al Cazador vuelve a patrullar. El giro se ve en los gizmos
+/// del cono de vision.
 /// </summary>
 public class WolfAlertState : WolfStateBase
 {
+    private const float TravelGrace = 4f;
+    private const float ScanDegreesPerSecond = 150f;
+
     private float _startTime;
     private float _arrivedTime;
     private bool _arrived;
@@ -37,16 +42,19 @@ public class WolfAlertState : WolfStateBase
                 _arrived = true;
                 _arrivedTime = Time.time;
             }
-            else if (Time.time - _startTime > Wolf.SearchDuration + 4f)
+            else if (Time.time - _startTime > Wolf.SearchDuration + TravelGrace)
             {
                 _fsm.ChangeState(WolfAgent.States.Return);
-                return;
             }
 
             return;
         }
 
         Wolf.Stop();
+
+        // Gira en el lugar: el cono de vision recorre la zona sin que el lobo
+        // se aleje del punto de alerta ni acampe el Coto de caza.
+        Wolf.transform.Rotate(0f, ScanDegreesPerSecond * Time.deltaTime, 0f, Space.World);
 
         if (Time.time - _arrivedTime >= Wolf.SearchDuration)
             _fsm.ChangeState(WolfAgent.States.Return);

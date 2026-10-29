@@ -61,7 +61,7 @@ public abstract class HunterStateBase : State<HunterAgent.States>
             return false;
         }
 
-        if (Hunter.Sensor.HasInactiveBoids)
+        if (Hunter.HasGatherableBoid)
         {
             if (current != HunterAgent.States.Gather)
             {

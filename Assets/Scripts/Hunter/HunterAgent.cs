@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -17,7 +18,7 @@ public class HunterAgent : MonoBehaviour
     [SerializeField] private Mode _mode = Mode.Parcial1;
 
     [Header("Movement")]
-    [SerializeField] private float _speed = 6.5f;
+    [SerializeField] private float _speed = 5f;
 
     [Header("Combat")]
     [SerializeField] private float _tba = 2f;
@@ -99,6 +100,9 @@ public class HunterAgent : MonoBehaviour
     public bool IsFleeCommitted => Time.time < _fleeCommitUntil;
     public ZoneVolume ChosenSafeZone { get; set; }
     public WolfAgent LastCaptor { get; private set; }
+    public int Deaths { get; private set; }
+
+    private readonly HashSet<BoidAgent> _unreachableGatherTargets = new();
 
     public bool ShouldFlee => IsParcial2 && !IsSpawnProtected
         && WolfSensor != null && WolfSensor.HasVisibleWolf && !IsImmune
@@ -122,6 +126,68 @@ public class HunterAgent : MonoBehaviour
     public FiniteStateMachine<States> FSM => _fsm;
 
     public bool CanAttack() => Combat != null && Combat.CanAttack;
+
+    /// <summary>
+    /// Devuelve el cadaver mas cercano que el Cazador puede recolectar. Se
+    /// descartan los que quedaron dentro de una pared: su nodo caminable mas
+    /// cercano esta lejos y el Cazador se quedaria trabado en Gather.
+    /// </summary>
+    public BoidAgent FindGatherableBoid()
+    {
+        if (Sensor == null) return null;
+
+        IReadOnlyList<BoidAgent> candidates = Sensor.InactiveBoids;
+        BoidAgent best = null;
+        float bestSqr = float.MaxValue;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            BoidAgent boid = candidates[i];
+
+            if (boid == null || !boid.IsDead || boid.IsCollected) continue;
+            if (_unreachableGatherTargets.Contains(boid)) continue;
+
+            if (!IsGatherTargetReachable(boid))
+            {
+                _unreachableGatherTargets.Add(boid);
+                continue;
+            }
+
+            float sqr = (boid.transform.position - transform.position).sqrMagnitude;
+
+            if (sqr >= bestSqr) continue;
+
+            bestSqr = sqr;
+            best = boid;
+        }
+
+        return best;
+    }
+
+    public bool HasGatherableBoid => FindGatherableBoid() != null;
+
+    /// <summary>
+    /// Un cadaver es recolectable si hay un nodo caminable a menos de un metro
+    /// de su posicion. Los que mueren incrustados en una pared no cumplen.
+    /// </summary>
+    private bool IsGatherTargetReachable(BoidAgent boid)
+    {
+        NavGraph graph = NavGraph.Instance;
+
+        if (graph == null || !graph.IsReady) return true;
+
+        int index = graph.FindNearestNode(boid.transform.position, false);
+        if (index < 0) return false;
+
+        Vector3 node = graph.Data.Nodes[index].Position;
+        return (node - boid.transform.position).sqrMagnitude <= 0.9f * 0.9f;
+    }
+
+    public void IgnoreGatherTarget(BoidAgent boid)
+    {
+        if (boid != null)
+            _unreachableGatherTargets.Add(boid);
+    }
 
     private void Awake()
     {
@@ -216,6 +282,7 @@ public class HunterAgent : MonoBehaviour
 
         IsCaptured = true;
         LastCaptor = wolf;
+        Deaths++;
         _fsm.ChangeState(States.Dead);
     }
 
