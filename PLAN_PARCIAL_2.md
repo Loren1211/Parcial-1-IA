@@ -138,10 +138,11 @@ Assets/Scripts/
 
 ### Fase 2 — Navegación
 
-- [ ] `NavGraph` y `NavGraphBaker` (grilla + raycasts).
-- [ ] `AStarPathfinder` con heap y suavizado por LOS.
-- [ ] `NavAgent` para seguir caminos.
-- [ ] Gizmos del grafo y del camino activo.
+- [x] `NavGraph` y `NavGraphBaker` (grilla + raycasts).
+- [x] `AStarPathfinder` con heap y suavizado por LOS.
+- [x] `NavAgent` para seguir caminos.
+- [x] Gizmos del grafo.
+- [ ] Gizmos del camino activo de cada agente (Fase 3/4).
 
 ### Fase 3 — Lobos
 

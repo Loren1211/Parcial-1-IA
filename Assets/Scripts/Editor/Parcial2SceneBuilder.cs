@@ -404,6 +404,19 @@ public static class Parcial2SceneBuilder
         bounds.Configure(11.2f, 7.2f, false, true);
         EditorUtility.SetDirty(bounds);
 
+        GameObject navObject = CreateChild("Nav Graph", parent);
+        NavGraph navGraph = navObject.AddComponent<NavGraph>();
+        navGraph.Configure(
+            Vector3.zero,
+            new Vector2(44f, 32f),
+            1f,
+            0.45f,
+            1f,
+            GameLayers.Mask(GameLayers.Obstacle),
+            new Vector3(-18.5f, 1f, 0f),
+            true);
+        EditorUtility.SetDirty(navGraph);
+
         GameObject trackerObject = CreateChild("Interest Object Tracker", parent);
         trackerObject.AddComponent<InterestObjectTracker>();
 
@@ -651,9 +664,21 @@ public static class Parcial2SceneBuilder
             if (zones[i].Kind == ZoneKind.Safe) safeZones++;
         }
 
+        NavGraph navGraph = Object.FindFirstObjectByType<NavGraph>();
+        int navNodes = 0;
+        int safeNodes = 0;
+
+        if (navGraph != null)
+        {
+            navGraph.Bake();
+            navNodes = navGraph.NodeCount;
+            safeNodes = navGraph.SafeNodeCount;
+        }
+
         Debug.Log("[Parcial 2] Boids: " + boids.Length + " | Hunter: " + (hunter != null) +
             " | Zonas: " + zones.Length + " (seguras: " + safeZones + ")" +
             " | Rutas: " + routes.Length + " | Bounds: " + (bounds != null) +
+            " | Nav: " + navNodes + " nodos (" + safeNodes + " seguros)" +
             " | Tracker: " + (tracker != null) + " | Feedback: " + (feedback != null));
     }
 
